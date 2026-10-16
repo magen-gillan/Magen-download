@@ -84,10 +84,15 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
     private val mSheetStateFlow: MutableStateFlow<SheetState> =
         MutableStateFlow(SheetState.InputUrl)
     private val mSheetValueFlow: MutableStateFlow<SheetValue> = MutableStateFlow(SheetValue.Hidden)
+    private val mClipboardSuggestionFlow: MutableStateFlow<List<String>?> =
+        MutableStateFlow(null)
 
     val selectionStateFlow = mSelectionStateFlow.asStateFlow()
     val sheetStateFlow = mSheetStateFlow.asStateFlow()
     val sheetValueFlow = mSheetValueFlow.asStateFlow()
+
+    /** URLs detected in the clipboard, waiting for the user to accept or dismiss. */
+    val clipboardSuggestionFlow = mClipboardSuggestionFlow.asStateFlow()
 
     private val sheetState
         get() = sheetStateFlow.value
@@ -239,5 +244,19 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
 
     private fun resetSelectionState() {
         mSelectionStateFlow.update { SelectionState.Idle }
+    }
+
+    /**
+     * Propose URLs copied to the clipboard as a download suggestion.
+     * Called from MainActivity when a fresh clipboard entry containing
+     * URLs is detected while the app is in the foreground.
+     */
+    fun proposeClipboardUrls(urls: List<String>) {
+        if (urls.isEmpty()) return
+        mClipboardSuggestionFlow.update { urls }
+    }
+
+    fun clearClipboardSuggestion() {
+        mClipboardSuggestionFlow.update { null }
     }
 }

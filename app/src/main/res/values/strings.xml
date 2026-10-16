@@ -458,4 +458,19 @@
     <string name="simple_audio_best_desc">Audio will be downloaded directly in the best available quality</string>
     <string name="simple_mode_setup">Updating libraries and setting up cookies…</string>
     <string name="app_mode_setting_desc">Show simple download options: best/480p video and best audio</string>
+
+    <string name="clipboard_suggestion_title">Link found in clipboard</string>
+    <string name="clipboard_suggestion_message">Do you want to download the link you just copied?</string>
+    <string name="clipboard_suggestion_multiple">%1$d links found in the clipboard. Download them all?</string>
+    <string name="clipboard_suggestion_confirm">Download now</string>
+    <string name="clipboard_suggestion_dismiss">Not now</string>
+    <string name="clipboard_suggestion_setting">Suggest copied links</string>
+    <string name="clipboard_suggestion_setting_desc">Show a download suggestion automatically when a link is copied to the clipboard</string>
+
+    <string name="shortcut_download_label">New download</string>
+    <string name="shortcut_download_long">Start a new download</string>
+    <string name="shortcut_history_label">Downloads</string>
+    <string name="shortcut_history_long">Browse finished downloads</string>
+    <string name="shortcut_settings_label">Settings</string>
+    <string name="shortcut_settings_long">Open app settings</string>
 </resources>

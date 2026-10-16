@@ -459,4 +459,19 @@
     <string name="simple_audio_best_desc">سيتم تحميل الصوت مباشرة بأفضل جودة متاحة</string>
     <string name="simple_mode_setup">جارٍ تحديث المكتبات وإعداد الكوكيز…</string>
     <string name="app_mode_setting_desc">عرض خيارات تحميل مبسطة: فيديو بالأفضل/480p وصوت بالأفضل</string>
+
+    <string name="clipboard_suggestion_title">تم العثور على رابط في الحافظة</string>
+    <string name="clipboard_suggestion_message">هل تريد تحميل الرابط الذي نسخته للتو؟</string>
+    <string name="clipboard_suggestion_multiple">تم العثور على %1$d روابط في الحافظة. هل تريد تحميلها كلها؟</string>
+    <string name="clipboard_suggestion_confirm">تحميل الآن</string>
+    <string name="clipboard_suggestion_dismiss">ليس الآن</string>
+    <string name="clipboard_suggestion_setting">اقتراح الروابط المنسوخة</string>
+    <string name="clipboard_suggestion_setting_desc">إظهار اقتراح تحميل تلقائي عند نسخ رابط إلى الحافظة</string>
+
+    <string name="shortcut_download_label">تحميل جديد</string>
+    <string name="shortcut_download_long">بدء تحميل جديد</string>
+    <string name="shortcut_history_label">التحميلات</string>
+    <string name="shortcut_history_long">استعراض التحميلات المنجزة</string>
+    <string name="shortcut_settings_label">الإعدادات</string>
+    <string name="shortcut_settings_long">فتح إعدادات التطبيق</string>
 </resources>

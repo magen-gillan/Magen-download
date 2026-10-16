@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_download"
+        android:shortcutDisabledMessage="@string/shortcut_download_label"
+        android:shortcutId="new_download"
+        android:shortcutLongLabel="@string/shortcut_download_long"
+        android:shortcutShortLabel="@string/shortcut_download_label">
+        <intent
+            android:action="com.magen.download.action.OPEN_DOWNLOAD_SHEET"
+            android:targetClass="com.magen.download.MainActivity"
+            android:targetPackage="com.magen.download" />
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_history"
+        android:shortcutDisabledMessage="@string/shortcut_history_label"
+        android:shortcutId="download_history"
+        android:shortcutLongLabel="@string/shortcut_history_long"
+        android:shortcutShortLabel="@string/shortcut_history_label">
+        <intent
+            android:action="com.magen.download.action.OPEN_HISTORY"
+            android:targetClass="com.magen.download.MainActivity"
+            android:targetPackage="com.magen.download" />
+    </shortcut>
+
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_settings"
+        android:shortcutDisabledMessage="@string/shortcut_settings_label"
+        android:shortcutId="app_settings"
+        android:shortcutLongLabel="@string/shortcut_settings_long"
+        android:shortcutShortLabel="@string/shortcut_settings_label">
+        <intent
+            android:action="com.magen.download.action.OPEN_SETTINGS"
+            android:targetClass="com.magen.download.MainActivity"
+            android:targetPackage="com.magen.download" />
+    </shortcut>
+</shortcuts>

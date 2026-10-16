@@ -16,6 +16,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Archive
+import androidx.compose.material.icons.outlined.ContentPaste
 import androidx.compose.material.icons.outlined.DoneAll
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.History
@@ -83,6 +84,7 @@ import com.magen.download.ui.component.PreferenceSwitchWithDivider
 import com.magen.download.ui.component.MagenDialog
 import com.magen.download.ui.page.download.NotificationPermissionDialog
 import com.magen.download.util.CONFIGURE
+import com.magen.download.util.CLIPBOARD_SUGGESTION
 import com.magen.download.util.CUSTOM_COMMAND
 import com.magen.download.util.DEBUG
 import com.magen.download.util.DISABLE_PREVIEW
@@ -179,6 +181,21 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
                         onClick = {
                             simpleMode = !simpleMode
                             SIMPLE_MODE.updateBoolean(simpleMode)
+                        },
+                    )
+                }
+                item {
+                    var clipboardSuggestion by
+                        remember { mutableStateOf(CLIPBOARD_SUGGESTION.getBoolean()) }
+                    PreferenceSwitch(
+                        title = stringResource(id = R.string.clipboard_suggestion_setting),
+                        description =
+                            stringResource(id = R.string.clipboard_suggestion_setting_desc),
+                        icon = Icons.Outlined.ContentPaste,
+                        isChecked = clipboardSuggestion,
+                        onClick = {
+                            clipboardSuggestion = !clipboardSuggestion
+                            CLIPBOARD_SUGGESTION.updateBoolean(clipboardSuggestion)
                         },
                     )
                 }

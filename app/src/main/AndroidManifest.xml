@@ -84,6 +84,10 @@
             android:launchMode="singleTask"
             android:screenOrientation="unspecified"
             android:theme="@style/Theme.Magen">
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
+
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

@@ -32,6 +32,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.magen.download.App
+import com.magen.download.MainActivity
 import com.magen.download.R
 import com.magen.download.ui.common.HapticFeedback.slightHapticFeedback
 import com.magen.download.ui.common.LocalWindowWidthState
@@ -103,6 +104,56 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
         if (navController.currentDestination?.route != Route.HOME) {
             navController.popBackStack(route = Route.HOME, inclusive = false, saveState = true)
         }
+    }
+
+    // App shortcuts (long-press on the launcher icon): navigate once consumed.
+    val pendingRoute by MainActivity.pendingRouteFlow.collectAsStateWithLifecycle()
+    LaunchedEffect(pendingRoute) {
+        if (pendingRoute == null) return@LaunchedEffect
+        when (pendingRoute) {
+            MainActivity.PENDING_ROUTE_DOWNLOAD_SHEET -> {
+                if (navController.currentDestination?.route != Route.HOME) {
+                    navController.popBackStack(
+                        route = Route.HOME,
+                        inclusive = false,
+                        saveState = true,
+                    )
+                }
+                dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet())
+            }
+
+            MainActivity.PENDING_ROUTE_HISTORY ->
+                if (navController.currentDestination?.route != Route.DOWNLOADS) {
+                    navController.navigate(Route.DOWNLOADS) {
+                        launchSingleTop = true
+                        popUpTo(route = Route.HOME)
+                    }
+                }
+
+            MainActivity.PENDING_ROUTE_SETTINGS ->
+                if (navController.currentDestination?.route != Route.SETTINGS_PAGE) {
+                    navController.navigate(Route.SETTINGS_PAGE) {
+                        launchSingleTop = true
+                        popUpTo(route = Route.HOME)
+                    }
+                }
+        }
+        MainActivity.clearPendingRoute()
+    }
+
+    // Clipboard download suggestion: offer to download a freshly copied link.
+    val sheetValue by dialogViewModel.sheetValueFlow.collectAsStateWithLifecycle()
+    val clipboardSuggestion by
+        dialogViewModel.clipboardSuggestionFlow.collectAsStateWithLifecycle()
+    if (clipboardSuggestion != null && sheetValue == DownloadDialogViewModel.SheetValue.Hidden) {
+        ClipboardSuggestionDialog(
+            urls = clipboardSuggestion.orEmpty(),
+            onConfirm = { urls ->
+                dialogViewModel.clearClipboardSuggestion()
+                dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(urls))
+            },
+            onDismiss = { dialogViewModel.clearClipboardSuggestion() },
+        )
     }
 
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
