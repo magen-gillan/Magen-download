@@ -17,3 +17,7 @@
 local.properties
 /keystore.properties
 .kotlin
+# Magen signing keys (do not publish)
+*.jks
+app/*.jks
+keystore.properties

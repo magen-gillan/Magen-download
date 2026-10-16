@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name" translatable="false">Seal</string>
+    <string name="app_name" translatable="false">Magen download</string>
     <string name="video_directory">Video folder</string>
     <string name="extract_audio">Save as audio</string>
     <string name="create_thumbnail">Save thumbnail</string>
@@ -450,4 +450,20 @@
         <item quantity="one">%d audio</item>
         <item quantity="other">%d audios</item>
     </plurals>
+
+    <string name="mode_welcome_title">Welcome to Magen download</string>
+    <string name="mode_welcome_subtitle">Choose how the app works. You can change this anytime from Settings.</string>
+    <string name="app_mode_simple">Simple mode</string>
+    <string name="app_mode_advanced">Advanced mode</string>
+    <string name="mode_simple_desc">Fewer, simpler options: video downloads in the highest or normal (480p) quality, and audio downloads directly in the best quality.</string>
+    <string name="mode_advanced_desc">All the advanced options and full control, just like the classic experience.</string>
+    <string name="mode_confirm">Done</string>
+    <string name="simple_video_best">Highest quality possible</string>
+    <string name="simple_video_best_desc">Best available video and audio quality</string>
+    <string name="simple_video_480">Normal quality (480p)</string>
+    <string name="simple_video_480_desc">Good quality while saving storage space</string>
+    <string name="simple_audio_best">Highest quality possible</string>
+    <string name="simple_audio_best_desc">Audio will be downloaded directly in the best available quality</string>
+    <string name="simple_mode_setup">Updating libraries and setting up cookies…</string>
+    <string name="app_mode_setting_desc">Show simple download options: best/480p video and best audio</string>
 </resources>

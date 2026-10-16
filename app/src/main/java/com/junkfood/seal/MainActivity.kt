@@ -8,7 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import com.junkfood.seal.App.Companion.context
+import com.junkfood.seal.App
 import com.junkfood.seal.ui.common.LocalDarkTheme
 import com.junkfood.seal.ui.common.SettingsProvider
 import com.junkfood.seal.ui.page.AppEntry
@@ -33,7 +33,6 @@ class MainActivity : AppCompatActivity() {
         }
         enableEdgeToEdge()
 
-        context = this.baseContext
         setContent {
             KoinContext {
                 val windowSizeClass = calculateWindowSizeClass(this)

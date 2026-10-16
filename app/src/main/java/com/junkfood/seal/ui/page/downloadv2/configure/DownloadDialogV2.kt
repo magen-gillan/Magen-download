@@ -46,6 +46,8 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.Hd
 import androidx.compose.material.icons.outlined.MoreVert
 import androidx.compose.material.icons.outlined.NewLabel
 import androidx.compose.material.icons.outlined.SettingsSuggest
@@ -131,6 +133,11 @@ import com.junkfood.seal.util.DownloadType.Video
 import com.junkfood.seal.util.DownloadType.entries
 import com.junkfood.seal.util.DownloadUtil
 import com.junkfood.seal.util.FORMAT_SELECTION
+import com.junkfood.seal.util.FORMAT_QUALITY
+import com.junkfood.seal.util.NOT_SPECIFIED
+import com.junkfood.seal.util.RES_480P
+import com.junkfood.seal.util.RES_HIGHEST
+import com.junkfood.seal.util.SIMPLE_MODE
 import com.junkfood.seal.util.PreferenceStrings
 import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.PreferenceUtil.getBoolean
@@ -157,6 +164,11 @@ private fun DownloadType.label(): String =
     )
 
 val PreferencesMock = DownloadUtil.DownloadPreferences.EMPTY
+
+private enum class SimpleVideoQuality {
+    BEST,
+    NORMAL_480,
+}
 
 data class Config(
     val downloadType: DownloadType? = PreferenceUtil.getDownloadType(),
@@ -389,7 +401,22 @@ private fun DownloadDialogContent(
                         onActionPost(
                             Action.DownloadWithPreset(
                                 urlList = state.urlList,
-                                preferences = preferences.copy(extractAudio = it == Audio),
+                                preferences =
+                                    preferences
+                                        .copy(extractAudio = it == Audio)
+                                        .let { prefs ->
+                                            if (SIMPLE_MODE.getBoolean())
+                                                prefs.copy(
+                                                    videoFormat = FORMAT_QUALITY,
+                                                    videoResolution = RES_HIGHEST,
+                                                    useCustomAudioPreset = false,
+                                                    audioQuality = NOT_SPECIFIED,
+                                                    audioFormat = NOT_SPECIFIED,
+                                                    formatSorting = false,
+                                                    formatIdString = "",
+                                                )
+                                            else prefs
+                                        },
                             )
                         )
                     }
@@ -524,8 +551,20 @@ private fun ConfigurePage(
     onActionPost: (Action) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    var selectedType by remember(config) { mutableStateOf(config.downloadType) }
-    var useFormatSelection by remember(config) { mutableStateOf(config.useFormatSelection) }
+    val isSimpleMode = SIMPLE_MODE.getBoolean()
+    var selectedType by
+        remember(config) {
+            mutableStateOf(
+                if (isSimpleMode)
+                    config.downloadType?.takeIf { it == Video || it == Audio } ?: Video
+                else config.downloadType
+            )
+        }
+    var useFormatSelection by
+        remember(config) {
+            mutableStateOf(if (isSimpleMode) false else config.useFormatSelection)
+        }
+    var simpleVideoQuality by remember { mutableStateOf(SimpleVideoQuality.BEST) }
     val canProceed = selectedType in config.typeEntries
 
     var showTemplateSelectionDialog by remember { mutableStateOf(false) }
@@ -551,7 +590,8 @@ private fun ConfigurePage(
             )
             DrawerSheetSubtitle(text = stringResource(id = R.string.download_type))
             DownloadTypeSelectionGroup(
-                typeEntries = config.typeEntries,
+                typeEntries =
+                    if (isSimpleMode) listOf(Video, Audio) else config.typeEntries,
                 selectedType = selectedType,
                 onSelect = { selectedType = it },
             )
@@ -561,20 +601,28 @@ private fun ConfigurePage(
                         text = stringResource(id = R.string.format_selection),
                         modifier = Modifier,
                     )
-                    Preset(
-                        modifier = Modifier,
-                        preference = preferences,
-                        selected = !useFormatSelection,
-                        downloadType = selectedType,
-                        onClick = { useFormatSelection = false },
-                        showEditIcon = !useFormatSelection && selectedType != Playlist,
-                        onEdit = { onPresetEdit(selectedType) },
-                    )
-                    Custom(
-                        selected = useFormatSelection,
-                        enabled = selectedType != Playlist,
-                        onClick = { useFormatSelection = true },
-                    )
+                    if (isSimpleMode) {
+                        SimpleModePresets(
+                            selectedType = selectedType,
+                            selectedVideoQuality = simpleVideoQuality,
+                            onSelectVideoQuality = { simpleVideoQuality = it },
+                        )
+                    } else {
+                        Preset(
+                            modifier = Modifier,
+                            preference = preferences,
+                            selected = !useFormatSelection,
+                            downloadType = selectedType,
+                            onClick = { useFormatSelection = false },
+                            showEditIcon = !useFormatSelection && selectedType != Playlist,
+                            onEdit = { onPresetEdit(selectedType) },
+                        )
+                        Custom(
+                            selected = useFormatSelection,
+                            enabled = selectedType != Playlist,
+                            onClick = { useFormatSelection = true },
+                        )
+                    }
                 } else {
                     if (showTemplateSelectionDialog) {
                         TemplatePickerDialog { showTemplateSelectionDialog = false }
@@ -622,26 +670,41 @@ private fun ConfigurePage(
             }
         }
         var expanded by remember { mutableStateOf(false) }
-        ExpandableTitle(expanded = expanded, onClick = { expanded = true }) { settingChips() }
+        if (!isSimpleMode) {
+            ExpandableTitle(expanded = expanded, onClick = { expanded = true }) { settingChips() }
+        }
 
         ActionButtons(
             modifier = Modifier.padding(horizontal = 20.dp),
             canProceed = canProceed,
             selectedType = selectedType,
-            useFormatSelection = useFormatSelection,
+            useFormatSelection = !isSimpleMode && useFormatSelection,
             onCancel = { onActionPost(Action.HideSheet) },
             onDownload = {
                 onConfigSave(
                     config.copy(
-                        useFormatSelection = useFormatSelection,
+                        useFormatSelection =
+                            if (isSimpleMode) config.useFormatSelection else useFormatSelection,
                         downloadType = selectedType,
                     )
                 )
+                val base = preferences.copy(extractAudio = selectedType == Audio)
+                val effective =
+                    if (isSimpleMode)
+                        base.copy(
+                            videoFormat = FORMAT_QUALITY,
+                            videoResolution =
+                                if (simpleVideoQuality == SimpleVideoQuality.BEST) RES_HIGHEST
+                                else RES_480P,
+                            useCustomAudioPreset = false,
+                            audioQuality = NOT_SPECIFIED,
+                            audioFormat = NOT_SPECIFIED,
+                            formatSorting = false,
+                            formatIdString = "",
+                        )
+                    else base
                 onActionPost(
-                    Action.DownloadWithPreset(
-                        urlList = listOf(url),
-                        preferences = preferences.copy(extractAudio = selectedType == Audio),
-                    )
+                    Action.DownloadWithPreset(urlList = listOf(url), preferences = effective)
                 )
             },
             onFetchInfo = {
@@ -1073,6 +1136,66 @@ private fun Custom(
         enabled = enabled,
         onClick = onClick,
     )
+}
+
+@Composable
+private fun SimpleModePresets(
+    modifier: Modifier = Modifier,
+    selectedType: DownloadType?,
+    selectedVideoQuality: SimpleVideoQuality,
+    onSelectVideoQuality: (SimpleVideoQuality) -> Unit,
+) {
+    when (selectedType) {
+        Audio -> {
+            SingleChoiceItem(
+                modifier = modifier,
+                title = stringResource(R.string.simple_audio_best),
+                desc = stringResource(R.string.simple_audio_best_desc),
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+                selected = true,
+                onClick = {},
+            )
+        }
+
+        Video -> {
+            SingleChoiceItem(
+                modifier = modifier,
+                title = stringResource(R.string.simple_video_best),
+                desc = stringResource(R.string.simple_video_best_desc),
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+                selected = selectedVideoQuality == SimpleVideoQuality.BEST,
+                onClick = { onSelectVideoQuality(SimpleVideoQuality.BEST) },
+            )
+            SingleChoiceItem(
+                modifier = modifier,
+                title = stringResource(R.string.simple_video_480),
+                desc = stringResource(R.string.simple_video_480_desc),
+                icon = {
+                    Icon(
+                        imageVector = Icons.Outlined.Hd,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                },
+                selected = selectedVideoQuality == SimpleVideoQuality.NORMAL_480,
+                onClick = { onSelectVideoQuality(SimpleVideoQuality.NORMAL_480) },
+            )
+        }
+
+        else -> {}
+    }
 }
 
 private enum class ActionButton {

@@ -159,9 +159,12 @@ object NotificationUtil {
     }
 
     fun updateServiceNotificationForPlaylist(index: Int, itemCount: Int) {
+        if (!::serviceNotification.isInitialized) return
         serviceNotification =
-            NotificationCompat.Builder(context, serviceNotification)
+            NotificationCompat.Builder(context, SERVICE_CHANNEL_ID)
+                .setSmallIcon(R.drawable.ic_stat_seal)
                 .setContentTitle(context.getString(R.string.service_title) + " ($index/$itemCount)")
+                .setOngoing(true)
                 .build()
         notificationManager.notify(SERVICE_NOTIFICATION_ID, serviceNotification)
     }

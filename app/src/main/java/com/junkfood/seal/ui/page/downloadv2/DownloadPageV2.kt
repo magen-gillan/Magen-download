@@ -344,7 +344,7 @@ fun DownloadPageImplV2(
 
     LaunchedEffect(selectedTask, taskDownloadStateMap.size) {
         if (!taskDownloadStateMap.contains(selectedTask)) {
-            selectedTask == null
+            selectedTask = null
         }
     }
 

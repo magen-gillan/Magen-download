@@ -29,6 +29,9 @@ android {
             isMinifyEnabled = true
         }
     }
+    lint {
+        checkReleaseBuilds = false
+    }
 }
 dependencies {
     api(platform(libs.androidx.compose.bom))

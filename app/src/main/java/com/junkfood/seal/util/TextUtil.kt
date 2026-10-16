@@ -57,7 +57,7 @@ fun Number?.toFileSizeText(): String {
 /** Convert time in **seconds** to `hh:mm:ss` or `mm:ss` */
 fun Int.toDurationText(): String =
     this.run {
-        if (this > 3600) "%d:%02d:%02d".format(this / 3600, (this % 3600) / 60, this % 60)
+        if (this >= 3600) "%d:%02d:%02d".format(this / 3600, (this % 3600) / 60, this % 60)
         else "%02d:%02d".format(this / 60, this % 60)
     }
 

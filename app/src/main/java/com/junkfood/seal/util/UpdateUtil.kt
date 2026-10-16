@@ -188,6 +188,7 @@ object UpdateUtil {
                     byteStream().use { inputStream ->
                         saveFile.outputStream().use { outputStream ->
                             val totalBytes = contentLength()
+                            val isLengthKnown = totalBytes > 0
                             val data = ByteArray(8_192)
                             var progressBytes = 0L
 
@@ -198,19 +199,23 @@ object UpdateUtil {
                                     break
                                 }
 
-                                outputStream.channel
                                 outputStream.write(data, 0, bytes)
                                 progressBytes += bytes
                                 emit(
                                     DownloadStatus.Progress(
-                                        percent = ((progressBytes * 100) / totalBytes).toInt()
+                                        percent =
+                                            if (isLengthKnown)
+                                                ((progressBytes * 100) / totalBytes).toInt()
+                                            else 0
                                     )
                                 )
                             }
 
                             when {
-                                progressBytes < totalBytes -> throw Exception("missing bytes")
-                                progressBytes > totalBytes -> throw Exception("too many bytes")
+                                isLengthKnown && progressBytes < totalBytes ->
+                                    throw Exception("missing bytes")
+                                isLengthKnown && progressBytes > totalBytes ->
+                                    throw Exception("too many bytes")
                                 else -> deleteFile = false
                             }
                         }

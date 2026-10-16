@@ -28,6 +28,7 @@ import java.util.concurrent.CancellationException
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -325,7 +326,7 @@ object Downloader {
             ToastUtil.makeToast(R.string.task_added)
             applicationScope
                 .launch(Dispatchers.Default) {
-                    while (!isDownloaderAvailable()) {
+                    while (isActive && !isDownloaderAvailable()) {
                         delay(3000)
                     }
                 }

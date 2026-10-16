@@ -163,6 +163,15 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     }
 
     override fun enqueue(task: Task, state: Task.State) {
+        // Cancel any running instance of the same task before (re-)enqueuing it
+        taskStateMap[task]?.let { existingState ->
+            if (
+                existingState.downloadState is Running ||
+                    existingState.downloadState is FetchingInfo
+            ) {
+                runCatching { task.cancelImpl() }
+            }
+        }
         taskStateMap += task to state
     }
 
@@ -186,7 +195,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     }
 
     private var Task.state: Task.State
-        get() = taskStateMap[this]!!
+        get() =
+            taskStateMap[this]
+                ?: Task.State(Idle, null, Task.ViewState(url = this.url, title = this.url))
         set(value) {
             taskStateMap[this] = value
         }

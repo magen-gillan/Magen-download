@@ -152,16 +152,19 @@ object FileUtil {
                         ) ?: return@forEach
 
                     val inputStream = it.inputStream()
-                    val outputStream =
-                        context.contentResolver.openOutputStream(destUri) ?: return@forEach
-                    inputStream.copyTo(outputStream)
-                    inputStream.closeQuietly()
-                    outputStream.closeQuietly()
+                    val outputStream = context.contentResolver.openOutputStream(destUri)
+                    if (outputStream == null) {
+                        inputStream.closeQuietly()
+                        return@forEach
+                    }
+                    inputStream.use { input ->
+                        outputStream.use { output -> input.copyTo(output) }
+                    }
                     uriList.add(destUri.toString())
                 }
                 uriList
             }
-        tempPath.deleteRecursively()
+        if (res.isSuccess) tempPath.deleteRecursively()
         return res
     }
 

@@ -30,6 +30,7 @@ import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.PrintDisabled
 import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -91,6 +92,7 @@ import com.junkfood.seal.util.NOTIFICATION
 import com.junkfood.seal.util.NotificationUtil
 import com.junkfood.seal.util.PLAYLIST
 import com.junkfood.seal.util.PRIVATE_MODE
+import com.junkfood.seal.util.SIMPLE_MODE
 import com.junkfood.seal.util.PreferenceUtil
 import com.junkfood.seal.util.PreferenceUtil.getBoolean
 import com.junkfood.seal.util.PreferenceUtil.getString
@@ -167,6 +169,19 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
         content = {
             val isCustomCommandEnabled by remember { mutableStateOf(CUSTOM_COMMAND.getBoolean()) }
             LazyColumn(modifier = Modifier, contentPadding = it) {
+                item {
+                    var simpleMode by remember { mutableStateOf(SIMPLE_MODE.getBoolean()) }
+                    PreferenceSwitch(
+                        title = stringResource(id = R.string.app_mode_simple),
+                        description = stringResource(id = R.string.app_mode_setting_desc),
+                        icon = Icons.Outlined.Tune,
+                        isChecked = simpleMode,
+                        onClick = {
+                            simpleMode = !simpleMode
+                            SIMPLE_MODE.updateBoolean(simpleMode)
+                        },
+                    )
+                }
                 //                item {
                 //                    SettingTitle(text = stringResource(id =
                 // R.string.general_settings))

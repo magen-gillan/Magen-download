@@ -451,4 +451,20 @@
     <string name="issue_tracker">متتبع المشكلة</string>
     <string name="issue_tracker_hint">هل واجهت خطًأ؟ قبل الإبلاغ عن مشكلة جديدة، يرجى البحث في أداة تتبع المشاكل لدينا. لقد عولجت العديد من المشاكل الشائعة وتوثيقها بالفعل هناك.</string>
     <string name="media_info">معلومات الوسائط</string>
+
+    <string name="mode_welcome_title">مرحبًا بك في Magen download</string>
+    <string name="mode_welcome_subtitle">اختر طريقة عمل التطبيق، ويمكنك تغييرها في أي وقت من الإعدادات.</string>
+    <string name="app_mode_simple">الوضع البسيط</string>
+    <string name="app_mode_advanced">الوضع المتقدم</string>
+    <string name="mode_simple_desc">خيارات أقل وأبسط: تحميل الفيديو بأعلى جودة أو بجودة عادية (480p)، وتحميل الصوت مباشرة بأفضل جودة.</string>
+    <string name="mode_advanced_desc">جميع الخيارات المتقدمة والتحكم الكامل، تمامًا كالتجربة الأصلية.</string>
+    <string name="mode_confirm">تم</string>
+    <string name="simple_video_best">أعلى جودة ممكنة</string>
+    <string name="simple_video_best_desc">أفضل جودة فيديو وصوت متاحة</string>
+    <string name="simple_video_480">الجودة العادية (480p)</string>
+    <string name="simple_video_480_desc">جودة جيدة مع توفير مساحة التخزين</string>
+    <string name="simple_audio_best">أعلى جودة ممكنة</string>
+    <string name="simple_audio_best_desc">سيتم تحميل الصوت مباشرة بأفضل جودة متاحة</string>
+    <string name="simple_mode_setup">جارٍ تحديث المكتبات وإعداد الكوكيز…</string>
+    <string name="app_mode_setting_desc">عرض خيارات تحميل مبسطة: فيديو بالأفضل/480p وصوت بالأفضل</string>
 </resources>

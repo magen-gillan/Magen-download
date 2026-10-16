@@ -78,7 +78,9 @@ class HomePageViewModel : ViewModel() {
             .onFailure {
                 manageDownloadError(th = it, url = url, isFetchingInfo = true, isTaskAborted = true)
             }
-        Downloader.updateState(State.Idle)
+        if (Downloader.downloaderState.value is State.FetchingInfo) {
+            Downloader.updateState(State.Idle)
+        }
     }
 
     private fun parsePlaylistInfo(url: String): Unit =

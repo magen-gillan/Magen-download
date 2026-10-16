@@ -116,6 +116,9 @@ const val YT_DLP_UPDATE_CHANNEL = "yt-dlp_update_channel"
 const val YT_DLP_UPDATE_TIME = "yt-dlp_last_update"
 const val YT_DLP_UPDATE_INTERVAL = "yt-dlp_update_interval"
 
+const val APP_MODE_SELECTED = "app_mode_selected"
+const val SIMPLE_MODE = "simple_mode"
+
 private const val INTERVAL_DAY = 86_400_000L
 private const val INTERVAL_WEEK = 86_400_000L * 7
 private const val INTERVAL_MONTH = 86_400_000L * 30
@@ -218,6 +221,8 @@ private val BooleanPreferenceDefaults =
         NOTIFICATION to true,
         EMBED_METADATA to true,
         USE_CUSTOM_AUDIO_PRESET to false,
+        APP_MODE_SELECTED to false,
+        SIMPLE_MODE to false,
     )
 
 private val IntPreferenceDefaults =

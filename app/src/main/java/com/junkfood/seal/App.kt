@@ -108,7 +108,11 @@ class App : Application() {
         }
         if (Build.VERSION.SDK_INT >= 26) NotificationUtil.createNotificationChannel()
 
-        Thread.setDefaultUncaughtExceptionHandler { _, e -> startCrashReportActivity(e) }
+        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
+        Thread.setDefaultUncaughtExceptionHandler { t, e ->
+            startCrashReportActivity(e)
+            previousHandler?.uncaughtException(t, e)
+        }
     }
 
     private fun startCrashReportActivity(th: Throwable) {
@@ -143,6 +147,7 @@ class App : Application() {
                 override fun onServiceDisconnected(arg0: ComponentName) {}
             }
 
+        @Synchronized
         fun startService() {
             if (isServiceRunning) return
             Intent(context.applicationContext, DownloadService::class.java).also { intent ->
@@ -150,6 +155,7 @@ class App : Application() {
             }
         }
 
+        @Synchronized
         fun stopService() {
             if (!isServiceRunning) return
             try {

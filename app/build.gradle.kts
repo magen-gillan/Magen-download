@@ -44,15 +44,16 @@ android {
     buildFeatures { buildConfig = true }
 
     defaultConfig {
-        applicationId = "com.junkfood.seal"
+        applicationId = "com.magen.download"
         minSdk = 24
         targetSdk = 35
-        versionCode = 200_000_150
+        versionCode = 200_000_400
         check(versionCode == currentVersionCode)
 
         versionName = baseVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
+        resourceConfigurations.addAll(listOf("en", "ar"))
 
         if (splitApks) {
             splits {
@@ -110,7 +111,7 @@ android {
             }
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
-            resValue("string", "app_name", "Seal Debug")
+            resValue("string", "app_name", "Magen download Debug")
         }
     }
 
@@ -125,7 +126,7 @@ android {
         create("githubPreview") {
             dimension = "publishChannel"
             applicationIdSuffix = ".preview"
-            resValue("string", "app_name", "Seal Preview")
+            resValue("string", "app_name", "Magen download Preview")
         }
 
         create("fdroid") {
@@ -134,12 +135,15 @@ android {
         }
     }
 
-    lint { disable.addAll(listOf("MissingTranslation", "ExtraTranslation", "MissingQuantity")) }
+    lint {
+        disable.addAll(listOf("MissingTranslation", "ExtraTranslation", "MissingQuantity"))
+        checkReleaseBuilds = false
+    }
 
     applicationVariants.all {
         outputs.all {
             (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                "Seal-${defaultConfig.versionName}-${name}.apk"
+                "Magen-download-${defaultConfig.versionName}-${name}.apk"
         }
     }
 

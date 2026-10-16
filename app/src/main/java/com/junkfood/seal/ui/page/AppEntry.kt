@@ -43,6 +43,7 @@ import com.junkfood.seal.ui.common.id
 import com.junkfood.seal.ui.common.slideInVerticallyComposable
 import com.junkfood.seal.ui.page.command.TaskListPage
 import com.junkfood.seal.ui.page.command.TaskLogPage
+import com.junkfood.seal.ui.page.ModeSelectionOverlay
 import com.junkfood.seal.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.junkfood.seal.ui.page.downloadv2.DownloadPageV2
 import com.junkfood.seal.ui.page.settings.SettingsPage
@@ -66,6 +67,8 @@ import com.junkfood.seal.ui.page.settings.network.NetworkPreferences
 import com.junkfood.seal.ui.page.settings.network.WebViewPage
 import com.junkfood.seal.ui.page.settings.troubleshooting.TroubleShootingPage
 import com.junkfood.seal.ui.page.videolist.VideoListPage
+import com.junkfood.seal.util.APP_MODE_SELECTED
+import com.junkfood.seal.util.PreferenceUtil.getBoolean
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -180,6 +183,12 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
 
             AppUpdater()
             YtdlpUpdater()
+        }
+
+        // First launch: choose Simple or Advanced mode
+        var modeSelected by rememberSaveable { mutableStateOf(APP_MODE_SELECTED.getBoolean()) }
+        if (!modeSelected) {
+            ModeSelectionOverlay(onConfirmed = { modeSelected = true })
         }
     }
 }
