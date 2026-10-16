@@ -77,8 +77,6 @@
     <string name="permission_issue_desc">المجلدات خارج «التنزيل» و«المستندات» غير مدعومة</string>
     <string name="battery_configuration">إدارة البطارية</string>
     <string name="battery_configuration_desc">تجاهل تحسين البطارية لجعل هذا التطبيق يحمل في الخلفية</string>
-    <string name="translate">ترجم</string>
-    <string name="translate_desc">ساعد في ترجمة هذا التطبيق على Weblate</string>
     <string name="video_directory">مجلد الفيديو</string>
     <string name="settings">الإعدادات</string>
     <string name="download">تنزيل</string>
@@ -125,7 +123,7 @@
     <string name="playlist_indicator_text">جارٍ تنزيل قائمة التشغيل (%1$d/%2$d)…</string>
     <string name="download_directory_desc">حدد مكان تخزين ملفات الفيديو والصوت</string>
     <string name="cancel">إلغاء</string>
-    <string name="service_title">Seal يقوم بالتنزيل…</string>
+    <string name="service_title">Magen download يقوم بالتنزيل…</string>
     <string name="settings_before_download_desc">اضبط التفضيلات قبل التنزيل</string>
     <string name="error_copied">نُسِخَ تقرير الخطأ إلى الحافظة</string>
     <string name="edit_template_desc">سيضيف التطبيق مسار الإخراج وعنوان الرابط.</string>
@@ -219,9 +217,7 @@
     <string name="remove_cookie_profile_desc">هل تريد حذف ملفات تعريف الارتباط الخاصة بـ \"%1$s\" ؟ يرجي العلم بأن ملفات تعريف الارتباط الخاصة بهذا الموقع لن تمسح.</string>
     <string name="custom_command_enabled_hint">قد لا تتوفر بعض الخيارات عند استخدام الأوامر المخصصة</string>
     <string name="how_does_it_work">كيف يعمل؟</string>
-    <string name="telegram_channel">قناة Telegram</string>
     <string name="cookies_usage_msg">يتطلب التنزيل من بعض المواقع معلومات مصادقة الحساب. انقر فوق \"إنشاء ملفات تعريف ارتباط جديدة\" ، وأدخل عنوان URL لموقع الويب ، ثم قم بتسجيل الدخول باستخدام حسابك في صفحة المتصفح ، وسيقوم التطبيق بإنشائه لك.</string>
-    <string name="matrix_space">مساحة Matrix</string>
     <string name="cookies">كوكيز</string>
     <string name="abs_hint">تقدم معظم منصات الفيديو، الصوت والفيديو بشكل منفصل ، يمكنك تحديد ودمج صيغة صوت فقط بصيغة فيديو في فيديو واحد.</string>
     <string name="auto_subtitle_desc">سيقوم هذا الخيار بتحميل الترجمة التلقائية ان توفرت من المصدر</string>
@@ -276,18 +272,14 @@
     <string name="rename">إعادة التسمية</string>
     <string name="clear_all_cookies_desc">هل تريد حذف جميع ملفات تعريف الارتباط المحفوظة في التطبيق؟</string>
     <string name="temporary_directory_desc">تخزين الملفات المؤقتة في الدليل الداخلي</string>
-    <string name="sponsor">الراعي</string>
-    <string name="sponsor_desc">ادعم هذا التطبيق من خلال الرعاية على GitHub</string>
-    <string name="sponsor_msg">Seal سيبقى دائمًا مجانيًا ومفتوح المصدر للجميع. إذا أعجبك، يُرجى التفكير في دعمي كراعياً على GitHub!</string>
     <string name="feedback">التعليقات</string>
-    <string name="sponsors">الرعاة</string>
     <string name="audio_format">صيغة الصوت</string>
     <string name="no_downloaded_media">لا توجد وسائط منزلة</string>
     <string name="beta_features">تجريبية</string>
     <string name="enable_experimental_feature">تفعيل الميزة التجريبية؟</string>
     <string name="clip_video_dialog_msg">سيتم تفويض التنزيلات باستخدام هذه الميزة إلى FFmpeg لتنزيل أقسام محددة من الفيديو، لا تزال هذه الميزة تجريبية ولن يكون القطع دقيقًا تمامًا، بالإضافة إلى ان هذه الميزة لا تدعم جميع التنسيقات وقد تواجه سرعات تنزيل أبطأ.</string>
     <string name="clip_video_desc">اصنع مقاطع فيديو في صفحة اختيار التنسيق</string>
-    <string name="auto_update_disabled_msg">التحديث التلقائي غير متاح لنسخة%1$s. إذا لم يكن لديك %1$s مثبت على جهازك، أو ترغب في معاينة الميزات الجديدة القادمة في Seal، يرجى التفكير في%2$s.</string>
+    <string name="auto_update_disabled_msg">التحديث التلقائي غير متاح لنسخة%1$s. إذا لم يكن لديك %1$s مثبت على جهازك، أو ترغب في معاينة الميزات الجديدة القادمة في Magen download، يرجى التفكير في%2$s.</string>
     <string name="switch_to_github_builds">التحويل إلى إصدارات GitHub</string>
     <string name="okay">حَسَنًا</string>
     <string name="got_it">فهمت</string>
@@ -340,9 +332,9 @@
         <item quantity="many">%d عنصرًا</item>
         <item quantity="other">%d عنصر</item>
     </plurals>
-    <string name="custom_command_usage_msg">yt-dlp هي أداة سطر أوامر قوية لتنزيل مقاطع الفيديو. يجعل Seal استخدام yt-dlp أسهل من خلال توفير واجهة مستخدم بديهية، وإعدادات مسبقة للأوامر الشائعة، وميزات إضافية أخرى.
+    <string name="custom_command_usage_msg">yt-dlp هي أداة سطر أوامر قوية لتنزيل مقاطع الفيديو. يجعل Magen download استخدام yt-dlp أسهل من خلال توفير واجهة مستخدم بديهية، وإعدادات مسبقة للأوامر الشائعة، وميزات إضافية أخرى.
 \n
-\nبالنسبة للاستخدام المتقدم لـ yt-dlp، يسمح لك Seal بإنشاء قوالب أوامر مخصصة وحفظها وتنفيذها مباشرة، تمامًا كما هو الحال في الطرفية.
+\nبالنسبة للاستخدام المتقدم لـ yt-dlp، يسمح لك Magen download بإنشاء قوالب أوامر مخصصة وحفظها وتنفيذها مباشرة، تمامًا كما هو الحال في الطرفية.
 \n
 \nعند استخدام الأوامر المخصصة، ستتم تعطيل معظم خيارات واجهة المستخدم والميزات.</string>
     <string name="clear_download_archive">هل تريد مسح أرشيف التحميل؟</string>

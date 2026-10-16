@@ -37,7 +37,7 @@ English
 <a href="https://github.com/JunkFood02/Seal/blob/main/translations/README-hi.md">हिंदी</a>
 
 
-[![F-Droid](https://img.shields.io/f-droid/v/com.junkfood.seal?color=b4eb12&label=F-Droid&logo=fdroid&logoColor=1f78d2)](https://f-droid.org/en/packages/com.junkfood.seal)
+[![F-Droid](https://img.shields.io/f-droid/v/com.magen.download?color=b4eb12&label=F-Droid&logo=fdroid&logoColor=1f78d2)](https://f-droid.org/en/packages/com.magen.download)
 [![GitHub release (latest by date)](https://img.shields.io/github/v/release/JunkFood02/Seal?color=black&label=Stable&logo=github)](https://github.com/JunkFood02/Seal/releases/latest/)
 [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/JunkFood02/Seal?include_prereleases&label=Preview&logo=Github)](https://github.com/JunkFood02/Seal/releases/)
 [![Keep a Changelog](https://img.shields.io/badge/Changelog-lightgray?style=flat&color=gray&logo=keep-a-changelog)](https://github.com/JunkFood02/Seal/blob/main/CHANGELOG.md)
@@ -99,11 +99,11 @@ English
 - [GitHub releases](https://github.com/JunkFood02/Seal/releases/latest) से नवीनतम स्थिर संस्करण डाउनलोड करें।
   - नए फीचर्स और परिवर्तनों का परीक्षण करने के लिए [pre-release](https://github.com/JunkFood02/Seal/releases/) संस्करणों को इंस्टॉल करें।
 
-- स्थिर रिलीज़ [F-Droid](https://f-droid.org/packages/com.junkfood.seal/) पर भी उपलब्ध हैं।
+- स्थिर रिलीज़ [F-Droid](https://f-droid.org/packages/com.magen.download/) पर भी उपलब्ध हैं।
 
 <!-- [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
      alt="Get it on F-Droid"
-     height="70">](https://f-droid.org/packages/com.junkfood.seal/) -->
+     height="70">](https://f-droid.org/packages/com.magen.download/) -->
 
 ## 💬 संपर्क
 

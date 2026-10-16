@@ -6,7 +6,7 @@
 
 ### تطبيق تحميل الفيديو والصوت لأندرويد | Video/Audio Downloader for Android
 
-مبني على مشروع Seal المفتوح المصدر، بواجهة عربية/إنجليزية كاملة ووضعين للاستخدام: **بسيط** و**متقدم**.
+تطبيق تحميل الفيديو والصوت لأندرويد، بواجهة عربية/إنجليزية كاملة ووضعين للاستخدام: **بسيط** و**متقدم**.
 
 </div>
 
@@ -27,7 +27,7 @@
   - **الوضع البسيط**: خيارات تحميل مختصرة وواضحة:
     - الفيديو: خياران فقط — *أعلى جودة ممكنة* أو *جودة عادية (480p)*.
     - الصوت: خيار واحد — *أعلى جودة ممكنة*، ويبدأ التحميل مباشرة عند الضغط.
-  - **الوضع المتقدم**: كل خيارات Seal الكاملة (اختيار الصيغ، الترجمات، أورا2سي، سبونسر بلوك... إلخ).
+  - **الوضع المتقدم**: كل الخيارات المتقدمة الكاملة (اختيار الصيغ، الترجمات، أورا2سي، سبونسر بلوك... إلخ).
 - **إعداد تلقائي في الوضع البسيط**: عند اختيار الوضع البسيط لأول مرة يقوم التطبيق تلقائيًا بـ:
   - تحديث مكتبة yt-dlp إلى أحدث إصدار (مع تفعيل التحديث التلقائي الدوري).
   - تفعيل الكوكيز واستخراجها من متصفح النظام حتى تقل فرص حجب الطلبات من يوتيوب.
@@ -43,7 +43,7 @@
 ./gradlew :app:assembleGenericRelease -PnoSplits "-PABI_FILTERS=arm64-v8a"
 ```
 
-سيُنتج البناء ملف `Magen-download-2.0.0-generic-release.apk` في
+سيُنتج البناء ملف `Magen-download-2.0.1-generic-release.apk` في
 `app/build/outputs/apk/generic/release/`.
 
 ## الترخيص والاعتمادات | License & Credits
@@ -52,9 +52,6 @@
 
 [<img src="https://www.gnu.org/graphics/gplv3-with-text-136x68.png" align="center">](https://github.com/JunkFood02/Seal/blob/main/LICENSE)
 
-هذا التطبيق مشتق من مشروع [**Seal**](https://github.com/JunkFood02/Seal) by JunkFood02،
-المنشور بموجب رخصة **GNU General Public License v3.0**، ويخضع لنفس الرخصة.
-يعتمد على [yt-dlp](https://github.com/yt-dlp/yt-dlp) و
-[youtubedl-android](https://github.com/yausername/youtubedl-android).
+هذا التطبيق مشتق من مشروع مفتوح المصدر سابق (Seal by JunkFood02) المنشور بموجب رخصة **GNU General Public License v3.0**، ويخضع لنفس الرخصة. يعتمد على [yt-dlp](https://github.com/yt-dlp/yt-dlp) و[youtubedl-android](https://github.com/yausername/youtubedl-android).
 
 </div>

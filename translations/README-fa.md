@@ -7,7 +7,7 @@ Seal
 </h1>
 </div>
 
-[![F-Droid](https://img.shields.io/f-droid/v/com.junkfood.seal.svg?logo=F-Droid&color=green&style=flat-square)](https://f-droid.org/en/packages/com.junkfood.seal)
+[![F-Droid](https://img.shields.io/f-droid/v/com.magen.download.svg?logo=F-Droid&color=green&style=flat-square)](https://f-droid.org/en/packages/com.magen.download)
 [![Releases](https://img.shields.io/github/release/JunkFood02/Seal.svg?logo=github&color=171515&label=stable&style=flat-square)](https://github.com/JunkFood02/Seal/releases/latest)
 [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/JunkFood02/Seal?include_prereleases&label=preview&logo=github)](https://github.com/JunkFood02/Seal/releases)
 [![GitHub all releases](https://img.shields.io/github/downloads/JunkFood02/Seal/total?style=flat-square)](https://github.com/JunkFood02/Seal/releases)
@@ -67,7 +67,7 @@ Seal
 
 [<img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png"
      alt="Get it on F-Droid"
-     height="70">](https://f-droid.org/packages/com.junkfood.seal/)
+     height="70">](https://f-droid.org/packages/com.magen.download/)
      
 ## 💬 تماس با ما
 

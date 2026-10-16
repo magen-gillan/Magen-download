@@ -47,7 +47,7 @@ android {
         applicationId = "com.magen.download"
         minSdk = 24
         targetSdk = 35
-        versionCode = 200_000_400
+        versionCode = 200_010_400
         check(versionCode == currentVersionCode)
 
         versionName = baseVersionName
@@ -155,7 +155,7 @@ android {
     }
     androidResources { generateLocaleConfig = true }
 
-    namespace = "com.junkfood.seal"
+    namespace = "com.magen.download"
 }
 
 ktfmt { kotlinLangStyle() }
