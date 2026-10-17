@@ -71,6 +71,10 @@
             </intent-filter>
         </activity>
 
+        <property
+            android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+            android:value="download-process-keepalive"/>
+
         <service
             android:name=".DownloadService"
             android:enabled="true"

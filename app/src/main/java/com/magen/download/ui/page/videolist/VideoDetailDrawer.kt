@@ -70,12 +70,15 @@ fun VideoDetailDrawer(
     val onReDownload =
         remember(info) {
             {
+                // Explicit target: the package has two SEND handlers
+                // (MainActivity + QuickDownloadActivity), so an implicit intent
+                // surfaces the system resolver on every tap.
                 context.startActivity(
-                    Intent().apply {
+                    Intent(context, com.magen.download.MainActivity::class.java).apply {
                         action = Intent.ACTION_SEND
-                        setPackage(context.packageName)
                         type = "text/plain"
                         putExtra(Intent.EXTRA_TEXT, info.videoUrl)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     }
                 )
             }

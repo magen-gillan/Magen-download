@@ -133,8 +133,10 @@ fun PermissionsGate(
     val allGranted = notificationsGranted && storageGranted && batteryGranted
 
     if (allGranted) {
-        PERMISSIONS_REQUESTED.updateBoolean(true)
         LaunchedEffect(Unit) {
+            // Side effect in an effect, not in composition: writing the flag
+            // during composition re-wrote it on every recomposition.
+            PERMISSIONS_REQUESTED.updateBoolean(true)
             delay(400)
             onDone()
         }

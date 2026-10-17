@@ -446,7 +446,6 @@ fun DownloadPageImplV2(
                                 audioCount = filteredMap.size - videoCount,
                                 isGridView = isGridView,
                                 onToggleView = { isGridView = !isGridView },
-                                onShowMenu = { context.makeToast("Not implemented yet!") },
                             )
                         }
                     }
@@ -512,24 +511,32 @@ fun DownloadPageImplV2(
         }
     }
     if (selectedTask != null) {
-        val task = selectedTask!!
-        val (downloadState, _, viewState) = taskDownloadStateMap[task] ?: return
-        MagenModalBottomSheet(
-            sheetState = sheetState,
-            contentPadding = PaddingValues(),
-            onDismissRequest = {
-                scope.launch { sheetState.hide() }.invokeOnCompletion { selectedTask = null }
-            },
-        ) {
-            SheetContent(
-                task = task,
-                downloadState = downloadState,
-                viewState = viewState,
-                onDismissRequest = {
-                    scope.launch { sheetState.hide() }.invokeOnCompletion { selectedTask = null }
-                },
-                onActionPost = onActionPost,
-            )
+        // Declarative null-safety: a non-local `return` from a composable aborts
+        // the rest of the composition (blank page). This can happen transiently
+        // when the selected task is removed while its action sheet is open; the
+        // LaunchedEffect below then clears selectedTask.
+        selectedTask?.let { task ->
+            taskDownloadStateMap[task]?.let { (downloadState, _, viewState) ->
+                MagenModalBottomSheet(
+                    sheetState = sheetState,
+                    contentPadding = PaddingValues(),
+                    onDismissRequest = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion { selectedTask = null }
+                    },
+                ) {
+                    SheetContent(
+                        task = task,
+                        downloadState = downloadState,
+                        viewState = viewState,
+                        onDismissRequest = {
+                            scope.launch { sheetState.hide() }.invokeOnCompletion {
+                                selectedTask = null
+                            }
+                        },
+                        onActionPost = onActionPost,
+                    )
+                }
+            }
         }
     }
 }
@@ -668,7 +675,6 @@ fun SubHeader(
     audioCount: Int = 0,
     isGridView: Boolean = true,
     onToggleView: () -> Unit,
-    onShowMenu: () -> Unit,
 ) {
     val text = buildString {
         if (videoCount > 0) {
@@ -709,19 +715,6 @@ fun SubHeader(
             )
         }
 
-        Spacer(Modifier.width(4.dp))
-
-        FilledIconButton(
-            onClick = onShowMenu,
-            modifier = Modifier.clearAndSetSemantics {}.size(32.dp),
-            colors = IconButtonDefaults.filledIconButtonColors(containerColor = containerColor),
-        ) {
-            Icon(
-                imageVector = Icons.Outlined.MoreVert,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-            )
-        }
     }
 }
 

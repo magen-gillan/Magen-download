@@ -17,7 +17,7 @@ import com.magen.download.R
 import java.io.File
 import okhttp3.internal.closeQuietly
 
-const val AUDIO_REGEX = "(mp3|aac|opus|m4a)$"
+const val AUDIO_REGEX = "\\.(mp3|aac|opus|m4a|flac|wav|wma)$"
 const val THUMBNAIL_REGEX = "\\.(jpg|png)$"
 const val SUBTITLE_REGEX = "\\.(lrc|vtt|srt|ass|json3|srv.|ttml)$"
 private const val PRIVATE_DIRECTORY_SUFFIX = ".MagenDownload"
@@ -104,10 +104,25 @@ object FileUtil {
         }
 
     @CheckResult
-    fun scanFileToMediaLibraryPostDownload(title: String, downloadDir: String): List<String> =
+    fun scanFileToMediaLibraryPostDownload(
+        title: String,
+        downloadDir: String,
+        videoId: String? = null,
+    ): List<String> =
         File(downloadDir)
             .walkTopDown()
-            .filter { it.isFile && it.absolutePath.contains(title) }
+            .filter { it.isFile }
+            .filter { file ->
+                val path = file.absolutePath
+                // The default output template embeds the video id
+                // ("Title [id].ext"), which is unique — a bare title substring
+                // cross-matches similar titles ("Foo" vs "Foo bar") or misses
+                // sanitized/renamed names entirely.
+                if (!videoId.isNullOrBlank() && path.contains("[$videoId]")) {
+                    return@filter true
+                }
+                path.contains(title)
+            }
             .map { it.absolutePath }
             .toMutableList()
             .apply {
@@ -151,27 +166,43 @@ object FileUtil {
                             it.name,
                         ) ?: return@forEach
 
-                    val inputStream = it.inputStream()
-                    val outputStream = context.contentResolver.openOutputStream(destUri)
-                    if (outputStream == null) {
-                        inputStream.closeQuietly()
-                        return@forEach
-                    }
-                    inputStream.use { input ->
-                        outputStream.use { output -> input.copyTo(output) }
-                    }
-                    uriList.add(destUri.toString())
+                    // Open/close streams defensively: a throw between open
+                    // calls leaked the input stream, and a failed copy left an
+                    // orphaned partial document in the user's SD folder
+                    // (duplicated as "name (1)" on the next attempt).
+                    val copied =
+                        runCatching {
+                            it.inputStream().use { input ->
+                                context.contentResolver.openOutputStream(destUri)?.use { output ->
+                                    input.copyTo(output)
+                                } ?: return@forEach
+                            }
+                            true
+                        }
+                            .onFailure {
+                                it.printStackTrace()
+                                runCatching {
+                                    DocumentsContract.deleteDocument(
+                                        context.contentResolver,
+                                        destUri,
+                                    )
+                                }
+                            }
+                            .getOrDefault(false)
+                    if (copied) uriList.add(destUri.toString())
                 }
                 uriList
             }
-        if (res.isSuccess) tempPath.deleteRecursively()
+        // Clean the temp dir regardless of outcome: keeping it made every
+        // retry re-copy everything from scratch.
+        tempPath.deleteRecursively()
         return res
     }
 
-    fun clearTempFiles(downloadDir: File): Int {
+    fun clearTempFiles(downloadDir: File, keep: ((File) -> Boolean)? = null): Int {
         var count = 0
         downloadDir.walkTopDown().forEach {
-            if (it.isFile && !it.isHidden) {
+            if (it.isFile && !it.isHidden && keep?.invoke(it) != true) {
                 if (it.delete()) count++
             }
         }
@@ -202,7 +233,7 @@ object FileUtil {
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
             "Magen download",
         )
-            .also { it.mkdir() }
+            .also { it.mkdirs() }
 
     internal fun getExternalPrivateDownloadDirectory() =
         File(

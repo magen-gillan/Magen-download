@@ -131,6 +131,11 @@ object NotificationUtil {
         title: String? = null,
         text: String? = null,
     ) {
+        // Respect the notifications preference like every other poster here.
+        if (!NOTIFICATION.getBoolean()) {
+            notificationManager.cancel(notificationId)
+            return
+        }
         //        notificationManager.cancel(notificationId)
         val builder =
             NotificationCompat.Builder(context, CHANNEL_ID)
@@ -259,7 +264,9 @@ object NotificationUtil {
     }
 
     fun areNotificationsEnabled(): Boolean {
-        return if (Build.VERSION.SDK_INT <= 24) true
+        // areNotificationsEnabled() exists since API 24 — the old "<= 24" guard
+        // misreported blocked notifications on exactly API 24.
+        return if (Build.VERSION.SDK_INT < 24) true
         else notificationManager.areNotificationsEnabled()
     }
 }

@@ -43,7 +43,7 @@ fun UpdateDialog(onDismissRequest: () -> Unit, release: UpdateUtil.Release) {
     val scope = rememberCoroutineScope()
     UpdateDialogImpl(
         onDismissRequest = onDismissRequest,
-        title = release.name.toString(),
+        title = release.name?.takeIf { it.isNotBlank() } ?: release.tagName ?: "",
         onConfirmUpdate = {
             scope.launch(Dispatchers.IO) {
                 runCatching {

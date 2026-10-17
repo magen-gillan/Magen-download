@@ -35,7 +35,12 @@ fun AppUpdater() {
         mutableStateOf(UpdateUtil.DownloadStatus.NotYet as UpdateUtil.DownloadStatus)
     }
     val scope = rememberCoroutineScope()
-    var updateJob: Job? = null
+    // Must be remembered: a plain local var is re-initialized to null on every
+    // recomposition (which happens on every progress tick), so the
+    // onDismissRequest lambda would cancel a stale (null) job and the APK
+    // download would keep running — and even prompt for install — after the
+    // dialog was dismissed.
+    var updateJob by remember { mutableStateOf<Job?>(null) }
     var release by remember { mutableStateOf(UpdateUtil.Release()) }
     val settings =
         rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -55,6 +60,11 @@ fun AppUpdater() {
                             )
                         )
                     else UpdateUtil.installLatestApk()
+                } else {
+                    // Below API 26 unknown sources is a global setting and the
+                    // install intent works directly — never dead-end silently
+                    // after a finished download.
+                    UpdateUtil.installLatestApk()
                 }
             }
         }
@@ -81,18 +91,21 @@ fun AppUpdater() {
                 showUpdateDialog = false
                 updateJob?.cancel()
             },
-            title = release.name.toString(),
+            title = release.name?.takeIf { it.isNotBlank() } ?: release.tagName ?: "",
             onConfirmUpdate = {
                 updateJob =
                     scope.launch(Dispatchers.IO) {
                         runCatching {
-                                UpdateUtil.downloadApk(release = release).collect { downloadStatus
-                                    ->
+                                UpdateUtil.downloadApk(release = release).collect { downloadStatus ->
                                     currentDownloadStatus = downloadStatus
                                     if (downloadStatus is UpdateUtil.DownloadStatus.Finished) {
-                                        launcher.launch(
-                                            Manifest.permission.REQUEST_INSTALL_PACKAGES
-                                        )
+                                        // ActivityResult launchers must be
+                                        // invoked from the main thread.
+                                        withContext(Dispatchers.Main) {
+                                            launcher.launch(
+                                                Manifest.permission.REQUEST_INSTALL_PACKAGES
+                                            )
+                                        }
                                     }
                                 }
                             }

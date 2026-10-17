@@ -43,10 +43,16 @@ object BackupUtil {
     }
 
     fun getDownloadHistoryExportFilename(context: Context): String {
+        // SimpleDateFormat with an explicit locale: Date().toString() embeds
+        // colons (rejected by FAT/exFAT and many SAF providers) and
+        // locale-dependent month names.
+        val timestamp =
+            java.text.SimpleDateFormat("yyyy-MM-dd_HHmm", java.util.Locale.US)
+                .format(java.util.Date())
         return listOf(
                 context.getString(R.string.app_name),
                 App.packageInfo.versionName.toString(),
-                Date().toString(),
+                timestamp,
             )
             .joinToString(separator = "-") { it }
     }

@@ -83,8 +83,9 @@ class App : Application() {
         applicationScope = CoroutineScope(SupervisorJob())
         DynamicColors.applyToActivitiesIfAvailable(this)
 
-        clipboard = getSystemService()!!
-        connectivityManager = getSystemService()!!
+        clipboard = requireNotNull(getSystemService()) { "ClipboardManager unavailable" }
+        connectivityManager =
+            requireNotNull(getSystemService()) { "ConnectivityManager unavailable" }
 
         applicationScope.launch((Dispatchers.IO)) {
             try {

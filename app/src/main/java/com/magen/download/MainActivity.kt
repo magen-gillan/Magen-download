@@ -10,7 +10,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import com.magen.download.App
 import com.magen.download.ui.common.LocalDarkTheme
 import com.magen.download.ui.common.SettingsProvider
 import com.magen.download.ui.page.AppEntry
@@ -42,6 +41,16 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
 
         consumeShortcutIntent(intent)
+
+        // Cold-start shares / URL opens are delivered to onCreate (the task did
+        // not exist yet); onNewIntent only covers the warm case. Without this,
+        // a shared link is silently dropped whenever the app process is dead.
+        // On first run the URL is intentionally dropped so the download sheet
+        // never floats above the mode-selection onboarding.
+        val sharedUrl = intent?.getSharedURL()
+        if (sharedUrl != null && APP_MODE_SELECTED.getBoolean()) {
+            dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(sharedUrl)))
+        }
 
         setContent {
             KoinContext {
@@ -97,14 +106,16 @@ class MainActivity : AppCompatActivity() {
         val urls = findURLsFromString(rawUrls)
         val clipboardKey = urls.joinToString(separator = "\n")
 
-        // Only react to clipboard content we have not seen before.
-        if (clipboardKey == lastCheckedClipboard) return
-        lastCheckedClipboard = clipboardKey
-
         if (urls.isEmpty()) return
         if (!CLIPBOARD_SUGGESTION.getBoolean()) return
         // Do not interrupt the first-run mode selection screen.
         if (!APP_MODE_SELECTED.getBoolean()) return
+
+        // Only react to clipboard content we have not seen before. Checked last:
+        // marking content as seen before the eligibility gates would make a link
+        // copied during first-run (or while the toggle is off) never suggested.
+        if (clipboardKey == lastCheckedClipboard) return
+        lastCheckedClipboard = clipboardKey
 
         dialogViewModel.proposeClipboardUrls(urls)
     }
@@ -125,34 +136,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun Intent.getSharedURL(): String? {
-        val intent = this
+        return when (action) {
+            Intent.ACTION_VIEW -> dataString?.let { matchUrlFromSharedText(it) }
 
-        return when (intent.action) {
-            Intent.ACTION_VIEW -> {
-                intent.dataString
-            }
-
-            Intent.ACTION_SEND -> {
-                intent.getStringExtra(Intent.EXTRA_TEXT)?.let { sharedContent ->
-                    intent.removeExtra(Intent.EXTRA_TEXT)
-                    matchUrlFromSharedText(sharedContent).also { matchedUrl ->
-                        if (sharedUrlCached != matchedUrl) {
-                            sharedUrlCached = matchedUrl
-                        }
-                    }
+            Intent.ACTION_SEND ->
+                getStringExtra(Intent.EXTRA_TEXT)?.let { sharedContent ->
+                    matchUrlFromSharedText(sharedContent)
                 }
-            }
 
-            else -> {
-                null
-            }
+            else -> null
         }
     }
 
     companion object {
-        private const val TAG = "MainActivity"
-        private var sharedUrlCached = ""
-
         const val ACTION_OPEN_DOWNLOAD_SHEET = "com.magen.download.action.OPEN_DOWNLOAD_SHEET"
         const val ACTION_OPEN_HISTORY = "com.magen.download.action.OPEN_HISTORY"
         const val ACTION_OPEN_SETTINGS = "com.magen.download.action.OPEN_SETTINGS"

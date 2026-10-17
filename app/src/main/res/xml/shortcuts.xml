@@ -11,7 +11,7 @@
         <intent
             android:action="com.magen.download.action.OPEN_DOWNLOAD_SHEET"
             android:targetClass="com.magen.download.MainActivity"
-            android:targetPackage="com.magen.download" />
+            />
     </shortcut>
 
     <shortcut
@@ -24,7 +24,7 @@
         <intent
             android:action="com.magen.download.action.OPEN_HISTORY"
             android:targetClass="com.magen.download.MainActivity"
-            android:targetPackage="com.magen.download" />
+            />
     </shortcut>
 
     <shortcut
@@ -37,6 +37,6 @@
         <intent
             android:action="com.magen.download.action.OPEN_SETTINGS"
             android:targetClass="com.magen.download.MainActivity"
-            android:targetPackage="com.magen.download" />
+            />
     </shortcut>
 </shortcuts>

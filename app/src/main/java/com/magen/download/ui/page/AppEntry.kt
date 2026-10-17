@@ -101,16 +101,31 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
         }
     }
 
-    if (sheetState is DownloadDialogViewModel.SheetState.Configure) {
-        if (navController.currentDestination?.route != Route.HOME) {
-            navController.popBackStack(route = Route.HOME, inclusive = false, saveState = true)
+    // First launch: choose Simple or Advanced mode. Declared up front so the
+    // navigation and updater effects below can wait for onboarding to finish.
+    var modeSelected by rememberSaveable { mutableStateOf(APP_MODE_SELECTED.getBoolean()) }
+    var permissionsHandled by
+        rememberSaveable { mutableStateOf(PERMISSIONS_REQUESTED.getBoolean()) }
+    val onboardingDone = modeSelected && permissionsHandled
+
+    // Force-pop back to HOME while the download sheet holds a Configure state.
+    // Must run in an effect: mutating the back stack during composition is an
+    // anti-pattern and can double-fire on every recomposition.
+    LaunchedEffect(sheetState) {
+        if (sheetState is DownloadDialogViewModel.SheetState.Configure) {
+            if (navController.currentDestination?.route != Route.HOME) {
+                navController.popBackStack(route = Route.HOME, inclusive = false, saveState = true)
+            }
         }
     }
 
     // App shortcuts (long-press on the launcher icon): navigate once consumed.
+    // Held back until onboarding finishes so the download sheet / settings page
+    // never float above the mode-selection or permission overlays (windows vs
+    // plain composables).
     val pendingRoute by MainActivity.pendingRouteFlow.collectAsStateWithLifecycle()
-    LaunchedEffect(pendingRoute) {
-        if (pendingRoute == null) return@LaunchedEffect
+    LaunchedEffect(pendingRoute, onboardingDone) {
+        if (pendingRoute == null || !onboardingDone) return@LaunchedEffect
         when (pendingRoute) {
             MainActivity.PENDING_ROUTE_DOWNLOAD_SHEET -> {
                 if (navController.currentDestination?.route != Route.HOME) {
@@ -185,7 +200,7 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
             },
             footer = {
                 Text(
-                    appName + "\n" + versionReport + "\n" + currentRoute,
+                    appName + "\n" + versionReport,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 12.dp),
@@ -232,20 +247,19 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
                 )
             }
 
-            AppUpdater()
-            YtdlpUpdater()
+            // Update dialogs are window-based; keep them out of onboarding.
+            if (onboardingDone) {
+                AppUpdater()
+                YtdlpUpdater()
+            }
         }
 
-        // First launch: choose Simple or Advanced mode
-        var modeSelected by rememberSaveable { mutableStateOf(APP_MODE_SELECTED.getBoolean()) }
         if (!modeSelected) {
             ModeSelectionOverlay(onConfirmed = { modeSelected = true })
         }
 
         // Right after the first-launch mode selection (and for existing installs
         // upgrading from older versions): request every permission the app needs.
-        var permissionsHandled by
-            rememberSaveable { mutableStateOf(PERMISSIONS_REQUESTED.getBoolean()) }
         if (modeSelected && !permissionsHandled) {
             PermissionsGate(onDone = { permissionsHandled = true })
         }

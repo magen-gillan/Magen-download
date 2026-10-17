@@ -120,11 +120,17 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
     private fun fetchPlaylist(action: Action.FetchPlaylist) {
         val (url, preferences) = action
 
+        // Unique per attempt: two concurrent fetches of the same URL would
+        // otherwise collide on the same yt-dlp process id ("Process ID already
+        // exists"). The key is stored in the Loading state, so cancel() can
+        // still destroy the right process.
+        val taskKey = "FetchPlaylist_${url}_${System.nanoTime()}"
         val job =
             viewModelScope.launch(Dispatchers.IO) {
                 DownloadUtil.getPlaylistOrVideoInfo(
                         playlistURL = url,
                         downloadPreferences = preferences,
+                        taskKey = taskKey,
                     )
                     .onSuccess { info ->
                         withContext(Dispatchers.Main) {
@@ -148,18 +154,21 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
                         mSheetStateFlow.update { SheetState.Error(action = action, throwable = th) }
                     }
             }
-        mSheetStateFlow.update { SheetState.Loading(taskKey = "FetchPlaylist_$url", job = job) }
+        mSheetStateFlow.update { SheetState.Loading(taskKey = taskKey, job = job) }
     }
 
     private fun fetchFormat(action: Action.FetchFormats) {
         val (url, audioOnly, preferences) = action
 
+        // Unique per attempt to avoid "Process ID already exists" when the same
+        // URL is fetched twice in quick succession.
+        val taskKey = "FetchFormat_${url}_${System.nanoTime()}"
         val job =
             viewModelScope.launch(Dispatchers.IO) {
                 DownloadUtil.fetchVideoInfoFromUrl(
                         url = url,
                         preferences = preferences.copy(extractAudio = audioOnly),
-                        taskKey = "FetchFormat_$url",
+                        taskKey = taskKey,
                     )
                     .onSuccess { info ->
                         withContext(Dispatchers.Main) {
@@ -176,7 +185,7 @@ class DownloadDialogViewModel(private val downloader: DownloaderV2) : ViewModel(
                     }
             }
 
-        mSheetStateFlow.update { SheetState.Loading(taskKey = "FetchFormat_$url", job = job) }
+        mSheetStateFlow.update { SheetState.Loading(taskKey = taskKey, job = job) }
     }
 
     private fun downloadWithPreset(

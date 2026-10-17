@@ -166,6 +166,10 @@
     <string name="sponsorblock_categories_desc">حدد فئات الـSponsorBlock المراد إزالتها او تعليمها في ملف الفيديو</string>
     <string name="sponsorblock_categories">تصنيفات الـSponsorBlock</string>
     <string name="app_up_to_date">انت على أحدث إصدار</string>
+    <string name="export_failed">تعذر تصدير الملف</string>
+    <string name="add_to">أضف إلى %1$s</string>
+    <string name="saved_urls">الروابط المحفوظة</string>
+    <string name="add_new_url">أضف رابطاً جديداً</string>
     <string name="app_update_failed">فشل التحديث إلى أحدث إصدار</string>
     <string name="update">تحديث</string>
     <string name="check_for_updates">البحث عن تحديثات</string>
@@ -419,7 +423,7 @@
     </plurals>
     <plurals name="audio_count">
         <item quantity="zero">صوت</item>
-        <item quantity="one">­%d صوت</item>
+        <item quantity="one">%d صوت</item>
         <item quantity="two">صوتان</item>
         <item quantity="few">%d أصوات</item>
         <item quantity="many">%d صوت</item>

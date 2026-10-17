@@ -208,13 +208,20 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
         }
     }
 
-    val selectedItemIds = remember(videoList, viewState) { mutableStateListOf<Int>() }
+    // NOT keyed on videoList/viewState: keying wiped the user's selection
+    // every time a background download finished or a filter chip toggled.
+    // Stale ids are pruned below instead.
+    val selectedItemIds = remember { mutableStateListOf<Int>() }
 
     LaunchedEffect(isSelectEnabled) {
         if (!isSelectEnabled) {
             delay(200)
             selectedItemIds.clear()
         }
+    }
+
+    LaunchedEffect(videoList) {
+        selectedItemIds.removeAll { id -> videoList.none { it.id == id } }
     }
 
     val selectedVideoCount =
@@ -528,7 +535,11 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
         )
     }
 
-    var deleteFile by remember { mutableStateOf(false) }
+    // Reset per dialog opening: a sticky "delete file" checkbox could delete
+    // files unintentionally on the next delete action.
+    var deleteFile by remember(showRemoveDialog, showRemoveMultipleItemsDialog) {
+        mutableStateOf(false)
+    }
 
     if (showRemoveDialog) {
         RemoveItemDialog(
@@ -588,10 +599,23 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
         ) { uri ->
             uri?.let {
                 scope.launch(Dispatchers.IO) {
-                    context.contentResolver.openOutputStream(uri)?.use {
-                        it.write(backupString.toByteArray())
+                    // SAF writes routinely throw; an unhandled exception here
+                    // crashes the app. Keep the dialog open on failure so the
+                    // user can retry.
+                    var success = false
+                    runCatching {
+                        context.contentResolver.openOutputStream(uri)?.use {
+                            it.write(backupString.toByteArray())
+                        }
+                        success = true
+                    }.onFailure { it.printStackTrace() }
+                    withContext(Dispatchers.Main) {
+                        if (success) {
+                            showExportDialog = false
+                        } else {
+                            ToastUtil.makeToast(R.string.export_failed)
+                        }
                     }
-                    withContext(Dispatchers.Main) { showExportDialog = false }
                 }
             }
         }
@@ -646,7 +670,7 @@ fun VideoListPage(viewModel: VideoListViewModel = koinViewModel(), onNavigateBac
                     }
 
                     File -> {
-                        importLauncher.launch("text/plain")
+                        importLauncher.launch("*/*")
                     }
                 }
             }

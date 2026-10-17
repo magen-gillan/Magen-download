@@ -253,9 +253,12 @@ private fun InputUrlPageImpl(
                 icon = Icons.Outlined.Cancel,
                 text = stringResource(R.string.cancel),
             )
+            // A blank URL would open a configure page for "" and end in a
+            // confusing fetch error; require actual input first.
             FilledButtonWithIcon(
                 icon = Icons.AutoMirrored.Outlined.ArrowForward,
                 text = stringResource(R.string.proceed),
+                enabled = url.isNotBlank(),
             ) {
                 onActionPost(Action.ProceedWithURLs(listOf(url)))
             }
@@ -459,8 +462,9 @@ private fun SavedUrlDialogImpl(
     onActionPost: (Action) -> Unit,
     onDismissRequest: () -> Unit,
 ) {
-    if (urls.isEmpty()) {
-        onDismissRequest()
+    // Never invoke a state-writing callback during composition.
+    LaunchedEffect(urls.isEmpty()) {
+        if (urls.isEmpty()) onDismissRequest()
     }
     var selectedUrl: String? by remember(urls.size) { mutableStateOf(null) }
     val hapticFeedback = LocalHapticFeedback.current

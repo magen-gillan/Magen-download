@@ -65,36 +65,49 @@ object UpdateUtil {
                 .updateYoutubeDL(appContext = context, updateChannel = channel)
                 .also {
                     // Only refresh the "last successful update" time when the update
-                    // actually succeeded (DONE / ALREADY_UP_TO_DATE, null on failure).
-                    // Recording the time on failure would postpone the next retry by a
-                    // whole interval (a week), leaving the user on a stale yt-dlp build
-                    // — old extractors get throttled by YouTube (near-zero speeds).
+                    // actually succeeded (DONE / ALREADY_UP_TO_DATE; on failure the
+                    // library throws, so this block never runs). Recording the time
+                    // on failure would postpone the next retry by a whole interval
+                    // (a week), leaving the user on a stale yt-dlp build — old
+                    // extractors get throttled by YouTube (near-zero speeds).
                     if (it == YoutubeDL.UpdateStatus.DONE ||
                         it == YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE
                     ) {
-                        YoutubeDL.getInstance().version(context)?.let { version ->
-                            PreferenceUtil.encodeString(YT_DLP_VERSION, version)
-                        }
+                        // A failed version lookup right after a successful update
+                        // must not prevent recording the update time (that would
+                        // trigger a redundant re-update on next launch).
+                        runCatching {
+                            YoutubeDL.getInstance().version(context)?.let { version ->
+                                PreferenceUtil.encodeString(YT_DLP_VERSION, version)
+                            }
+                        }.onFailure { it.printStackTrace() }
                         YT_DLP_UPDATE_TIME.updateLong(System.currentTimeMillis())
                     }
                 }
         }
 
+    /** Prefer the release title, fall back to the (always-present) tag name. */
+    private fun Release.versionOf(): Version =
+        (name?.takeIf { it.isNotBlank() } ?: tagName).toVersion()
+
     private fun getLatestRelease(): Release =
         client.newCall(requestForReleases).execute().body.use {
             val releaseList = jsonFormat.decodeFromString<List<Release>>(it.string())
             val stable = UPDATE_CHANNEL.getInt() == STABLE
+            // Version from name with tag_name fallback: GitHub releases without
+            // an explicit title have name == null and would sort as 0.0.0,
+            // silently disabling the app updater.
             val latestRelease =
                 releaseList
-                    .filter { if (stable) it.name.toVersion() is Version.Stable else true }
-                    .maxByOrNull { it.name.toVersion() } ?: throw Exception("null response")
+                    .filter { if (stable) it.versionOf() is Version.Stable else true }
+                    .maxByOrNull { it.versionOf() } ?: throw Exception("null response")
             latestRelease
         }
 
     fun checkForUpdate(context: Context = App.context): Release? {
         val currentVersion = context.getCurrentVersion()
         val latestRelease = getLatestRelease()
-        val latestVersion = latestRelease.name.toVersion()
+        val latestVersion = latestRelease.versionOf()
         return if (currentVersion < latestVersion) latestRelease else null
     }
 
@@ -158,19 +171,28 @@ object UpdateUtil {
 
             Log.d(TAG, apkVersion.toString())
 
-            if (apkVersion >= release.name.toVersion()) {
+            if (apkVersion >= release.versionOf()) {
                 return@withContext flow<DownloadStatus> {
                     emit(DownloadStatus.Finished(context.getLatestApk()))
                 }
             }
 
             val abiList = Build.SUPPORTED_ABIS
-            val preferredArch = abiList.firstOrNull() ?: return@withContext emptyFlow()
+            if (abiList.isEmpty()) return@withContext emptyFlow()
 
+            // Match against every supported ABI (device priority order) with a
+            // boundary check: a plain contains("x86") also matches "x86_64" and
+            // could download the wrong APK on x86 devices.
             val targetUrl =
                 release.assets
-                    ?.find {
-                        return@find it.name?.contains(preferredArch) ?: false
+                    ?.firstOrNull { asset ->
+                        val assetName = asset.name ?: return@firstOrNull false
+                        abiList.any { abi ->
+                            assetName.contains("$abi.") ||
+                                assetName.contains("$abi-") ||
+                                assetName.endsWith("-$abi") ||
+                                assetName.endsWith("_$abi")
+                        }
                     }
                     ?.browserDownloadUrl ?: return@withContext emptyFlow()
             val request = Request.Builder().url(targetUrl).build()

@@ -365,7 +365,15 @@ object PreferenceUtil {
                 delay(100)
             }
         }
-        return template ?: throw NoSuchElementException()
+        // Never throw: this is called synchronously during composition of the
+        // download sheet; a stale/missing template id (or an empty table mid
+        // operation) crashed the app instead of falling back to the example.
+        return template
+            ?: CommandTemplate(
+                id = 0,
+                name = context.getString(R.string.custom_command_template),
+                template = TEMPLATE_EXAMPLE,
+            )
     }
 
     suspend fun initializeTemplateSample() {

@@ -38,10 +38,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.magen.download.R
+import com.magen.download.util.AUDIO_REGEX
 import com.magen.download.ui.common.AsyncImageImpl
 import com.magen.download.util.toFileSizeText
 
-private const val AUDIO_REGEX = "\\.(mp3|aac|opus|m4a|flac|wav)"
+
 
 @Composable
 @Preview

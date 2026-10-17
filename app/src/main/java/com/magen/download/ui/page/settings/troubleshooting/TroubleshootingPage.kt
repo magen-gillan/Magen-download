@@ -17,6 +17,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -94,11 +95,18 @@ fun TroubleShootingPage(
                 var isUpdating by remember { mutableStateOf(false) }
                 var showYtdlpDialog by remember { mutableStateOf(false) }
 
+                // version() spawns a yt-dlp subprocess and blocks; load it off
+                // the main thread instead of freezing the page on open.
                 var ytdlpVersion by remember {
-                    mutableStateOf(
-                        YoutubeDL.getInstance().version(context.applicationContext)
-                            ?: context.getString(R.string.ytdlp_update)
-                    )
+                    mutableStateOf(context.getString(R.string.ytdlp_update))
+                }
+                LaunchedEffect(Unit) {
+                    withContext(Dispatchers.IO) {
+                        val version = runCatching {
+                            YoutubeDL.getInstance().version(context.applicationContext)
+                        }.getOrNull()
+                        if (version != null) ytdlpVersion = version
+                    }
                 }
                 PreferenceItem(
                     title = stringResource(id = R.string.ytdlp_update_action),

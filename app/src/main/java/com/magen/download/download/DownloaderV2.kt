@@ -45,6 +45,13 @@ private const val MAX_CONCURRENCY = 3
 interface DownloaderV2 {
     fun getTaskStateMap(): SnapshotStateMap<Task, Task.State>
 
+    /** Number of tasks currently fetching info or downloading (busy). */
+    fun countBusyTasks(): Int =
+        getTaskStateMap().values.count { state ->
+            state.downloadState is Task.DownloadState.Running ||
+                state.downloadState is Task.DownloadState.FetchingInfo
+        }
+
     fun cancel(task: Task): Boolean
 
     fun cancel(taskId: String): Boolean {
@@ -101,7 +108,15 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     init {
         scope.launch(Dispatchers.Default) {
             snapshotFlow
-                .onEach { doYourWork() }
+                .onEach {
+                    // A single unexpected task-state transition (e.g. resuming a
+                    // custom-command task) must never kill the scheduler coroutine,
+                    // otherwise the whole download queue freezes forever with tasks
+                    // stuck on "Downloading".
+                    runCatching { doYourWork() }.onFailure { throwable ->
+                        Log.e(TAG, "download scheduler failed", throwable)
+                    }
+                }
                 .map { it.countRunning() }
                 .distinctUntilChanged()
                 .collect { if (it > 0) App.startService() else App.stopService() }
@@ -158,8 +173,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     }
 
     override fun enqueue(task: Task) {
-        taskStateMap +=
-            task to Task.State(Idle, null, Task.ViewState(url = task.url, title = task.url))
+        // Route through the two-arg overload so a running duplicate of the same
+        // task is cancelled first. Enqueuing a second instance of a running task
+        // with a fresh state would otherwise start a second yt-dlp process with
+        // the same process id, which fails with "Process ID already exists".
+        enqueue(task, Task.State(Idle, null, Task.ViewState(url = task.url, title = task.url)))
     }
 
     override fun enqueue(task: Task, state: Task.State) {
@@ -199,28 +217,28 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             taskStateMap[this]
                 ?: Task.State(Idle, null, Task.ViewState(url = this.url, title = this.url))
         set(value) {
+            // Don't resurrect a task that was removed while its download
+            // coroutine was still finishing up (e.g. writing its final state).
+            if (!taskStateMap.contains(this)) return
             taskStateMap[this] = value
         }
 
     private var Task.downloadState: DownloadState
         get() = state.downloadState
         set(value) {
-            val prevState = state
-            taskStateMap[this] = prevState.copy(downloadState = value)
+            state = state.copy(downloadState = value)
         }
 
     private var Task.info: VideoInfo?
         get() = state.videoInfo
         set(value) {
-            val prevState = state
-            taskStateMap[this] = prevState.copy(videoInfo = value)
+            state = state.copy(videoInfo = value)
         }
 
     private var Task.viewState: Task.ViewState
         get() = state.viewState
         set(value) {
-            val prevState = state
-            taskStateMap[this] = prevState.copy(viewState = value)
+            state = state.copy(viewState = value)
         }
 
     private val Task.notificationId: Int
@@ -239,9 +257,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 when (state.downloadState) {
                     Idle -> task.prepare()
                     ReadyWithInfo -> task.download()
-                    else -> {
-                        throw IllegalStateException()
-                    }
+                    // Can only happen through a race with a concurrent state
+                    // change; log it instead of crashing the scheduler.
+                    else -> Log.w(TAG, "unexpected task state in scheduler: ${state.downloadState}")
                 }
             }
     }
@@ -256,12 +274,15 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     }
 
     private fun Task.fetchInfo() {
-        check(downloadState == Idle)
+        if (downloadState != Idle) return
         val task = this
         val taskInfo = task.type
         val playlistIndex = if (taskInfo is TypeInfo.Playlist) taskInfo.index else null
         scope
-            .launch(Dispatchers.Default) {
+            // Blocking yt-dlp process waits belong on IO, not on the small
+            // Default pool: on low-core devices saturated Default threads starve
+            // the scheduler collector and progress freezes.
+            .launch(Dispatchers.IO) {
                 DownloadUtil.fetchVideoInfoFromUrl(
                         url = url,
                         playlistIndex = playlistIndex,
@@ -280,7 +301,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         task.downloadState = Error(throwable = throwable, action = FetchInfo)
                         NotificationUtil.notifyError(
                             title = viewState.title,
-                            textId = R.string.download_error_msg,
+                            textId = R.string.fetch_info_error_msg,
                             notificationId = notificationId,
                             report = throwable.stackTraceToString(),
                         )
@@ -290,30 +311,51 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     }
 
     private fun Task.download() {
-        check(downloadState == ReadyWithInfo && info != null)
+        // Resuming a canceled/error task lands here with the state already set
+        // to ReadyWithInfo by restartImpl(); a strict check() would throw and
+        // kill the scheduler. Guard instead of crash.
+        if (downloadState != ReadyWithInfo || info == null) return
         if (type is TypeInfo.CustomCommand) {
             execute()
             return
         }
         scope
-            .launch(Dispatchers.Default) {
+            .launch(Dispatchers.IO) {
+                // Throttle notification spam: yt-dlp invokes this callback for
+                // every output line (download ticks, merger, post-processing),
+                // so refresh the notification at most twice per second.
+                var lastNotifyTime = 0L
                 DownloadUtil.downloadVideo(
                         videoInfo = info,
                         taskId = id,
                         downloadPreferences = preferences,
                         progressCallback = { progressPercentage, _, text ->
-                            val progress = progressPercentage / 100f
                             when (val preState = downloadState) {
                                 is Running -> {
-                                    downloadState =
-                                        preState.copy(progress = progress, progressText = text)
-                                    NotificationUtil.notifyProgress(
-                                        notificationId = notificationId,
-                                        progress = progressPercentage.toInt(),
-                                        text = text,
-                                        title = viewState.title,
-                                        taskId = id,
-                                    )
+                                    // Lines that don't report progress (e.g.
+                                    // "[Merger]", "[ExtractAudio]") arrive as -1;
+                                    // keep the status text but never regress the
+                                    // progress bar.
+                                    if (progressPercentage >= 0f) {
+                                        downloadState =
+                                            preState.copy(
+                                                progress = progressPercentage / 100f,
+                                                progressText = text,
+                                            )
+                                    } else if (preState.progressText != text) {
+                                        downloadState = preState.copy(progressText = text)
+                                    }
+                                    val now = System.currentTimeMillis()
+                                    if (now - lastNotifyTime >= 500) {
+                                        lastNotifyTime = now
+                                        NotificationUtil.notifyProgress(
+                                            notificationId = notificationId,
+                                            progress = progressPercentage.toInt(),
+                                            text = text,
+                                            title = viewState.title,
+                                            taskId = id,
+                                        )
+                                    }
                                 }
                                 else -> {}
                             }
@@ -351,7 +393,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         downloadState = Error(throwable = throwable, action = Download)
                         NotificationUtil.notifyError(
                             title = viewState.title,
-                            textId = R.string.fetch_info_error_msg,
+                            textId = R.string.download_error_msg,
                             notificationId = notificationId,
                             report = throwable.stackTraceToString(),
                         )
@@ -396,9 +438,8 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         FetchInfo -> Idle
                     }
             }
-            else -> {
-                throw IllegalStateException()
-            }
+            // Never crash the caller (and the UI) for a stale restart request.
+            else -> Log.w(TAG, "restart() on non-restartable state: $preState")
         }
     }
 
@@ -408,7 +449,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
      * @see Task.TypeInfo.CustomCommand
      */
     private fun Task.execute() {
-        check(downloadState == Idle)
+        // Called from prepare() (state Idle) and from download() when resuming
+        // (state ReadyWithInfo); a strict Idle-only check() made resuming a
+        // custom-command task throw and kill the whole scheduler.
+        if (downloadState is Running || downloadState is FetchingInfo) return
         check(type is TypeInfo.CustomCommand)
         val template = type.template
         scope
@@ -441,7 +485,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         downloadState = Error(throwable = throwable, action = Download)
                         NotificationUtil.notifyError(
                             title = viewState.title,
-                            textId = R.string.fetch_info_error_msg,
+                            textId = R.string.download_error_msg,
                             notificationId = notificationId,
                             report = throwable.stackTraceToString(),
                         )

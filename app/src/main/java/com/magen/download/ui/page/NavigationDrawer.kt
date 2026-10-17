@@ -106,7 +106,7 @@ fun NavigationDrawer(
         }
         WindowWidthSizeClass.Expanded -> {
             ModalNavigationDrawer(
-                gesturesEnabled = drawerState.isOpen,
+                gesturesEnabled = gesturesEnabled && drawerState.isOpen,
                 drawerState = drawerState,
                 drawerContent = {
                     ModalDrawerSheet(drawerState = drawerState, modifier = modifier.width(360.dp)) {

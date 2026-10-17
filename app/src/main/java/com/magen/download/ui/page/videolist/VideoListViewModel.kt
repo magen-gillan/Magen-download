@@ -58,9 +58,12 @@ class VideoListViewModel : ViewModel() {
         }
 
     val fileSizeMapFlow =
-        videoListFlow.flowOn(Dispatchers.IO).map { list ->
-            list.associate { it.id to it.videoPath.getFileSize() }
-        }
+        // flowOn only affects upstream operators: the map (disk/SAF I/O per
+        // item) must be BEFORE flowOn, otherwise getFileSize() runs on the
+        // main-thread collector on every history emission (jank/ANR risk).
+        videoListFlow
+            .map { list -> list.associate { it.id to it.videoPath.getFileSize() } }
+            .flowOn(Dispatchers.IO)
 
     fun clickVideoFilter() {
         if (mutableStateFlow.value.videoFilter)
@@ -97,11 +100,16 @@ class VideoListViewModel : ViewModel() {
     fun importBackupFromUri(context: Context, uri: Uri, onComplete: suspend (Int) -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
             var res = 0
-            context.contentResolver.openInputStream(uri)?.use { input ->
-                input.bufferedReader(Charsets.UTF_8).readText().let {
-                    res = importBackupFromText(it)
+            // SAF streams routinely throw (SecurityException/FileNotFound);
+            // an unhandled exception here crashes the app instead of just
+            // failing the import.
+            runCatching {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    input.bufferedReader(Charsets.UTF_8).readText().let {
+                        res = importBackupFromText(it)
+                    }
                 }
-            }
+            }.onFailure { it.printStackTrace() }
             withContext(Dispatchers.Main) { onComplete(res) }
         }
     }

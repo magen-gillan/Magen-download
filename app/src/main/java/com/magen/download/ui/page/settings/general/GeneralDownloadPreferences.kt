@@ -51,7 +51,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.contentColorFor
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -229,11 +231,18 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
                         )
                     }
                 item {
+                    // version() spawns a yt-dlp subprocess and blocks; loading it
+                    // inside remember{} froze the settings page on every open.
                     var ytdlpVersion by remember {
-                        mutableStateOf(
-                            YoutubeDL.getInstance().version(context.applicationContext)
-                                ?: context.getString(R.string.ytdlp_update)
-                        )
+                        mutableStateOf(context.getString(R.string.ytdlp_update))
+                    }
+                    LaunchedEffect(Unit) {
+                        withContext(Dispatchers.IO) {
+                            val version = runCatching {
+                                YoutubeDL.getInstance().version(context.applicationContext)
+                            }.getOrNull()
+                            if (version != null) ytdlpVersion = version
+                        }
                     }
                     PreferenceItem(
                         title = stringResource(id = R.string.ytdlp_update_action),
@@ -450,6 +459,9 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
         SponsorBlockDialog { showSponsorBlockDialog = false }
     }
     if (showPermissions) {
+        // The gate is a full-screen overlay; without a BackHandler the system
+        // back press popped the whole settings route underneath it.
+        BackHandler(enabled = showPermissions) { showPermissions = false }
         PermissionsGate(inSettings = true, onDone = { showPermissions = false })
     }
     if (showYtdlpDialog) {

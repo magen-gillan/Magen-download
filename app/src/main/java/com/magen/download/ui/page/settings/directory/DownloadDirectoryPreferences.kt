@@ -405,7 +405,13 @@ fun DownloadDirectoryPreferences(onNavigateBack: () -> Unit) {
                 ConfirmButton {
                     showClearTempDialog = false
                     scope.launch(Dispatchers.IO) {
-                        FileUtil.clearTempFiles(context.getConfigDirectory())
+                        // cookies.txt and config*.txt live in the config dir
+                        // and are used by EVERY cookie-based download; wiping
+                        // them broke downloads until the app restarted.
+                        FileUtil.clearTempFiles(context.getConfigDirectory()) { file ->
+                            file.name == "cookies.txt" ||
+                                (file.name.startsWith("config") && file.name.endsWith(".txt"))
+                        }
                         val count =
                             FileUtil.run {
                                 clearTempFiles(getExternalTempDir()) +
