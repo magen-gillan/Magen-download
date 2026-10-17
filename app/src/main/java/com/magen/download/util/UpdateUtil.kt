@@ -64,13 +64,19 @@ object UpdateUtil {
             YoutubeDL.getInstance()
                 .updateYoutubeDL(appContext = context, updateChannel = channel)
                 .also {
-                    if (it == YoutubeDL.UpdateStatus.DONE) {
-                        YoutubeDL.getInstance().version(context)?.let {
-                            PreferenceUtil.encodeString(YT_DLP_VERSION, it)
+                    // Only refresh the "last successful update" time when the update
+                    // actually succeeded (DONE / ALREADY_UP_TO_DATE, null on failure).
+                    // Recording the time on failure would postpone the next retry by a
+                    // whole interval (a week), leaving the user on a stale yt-dlp build
+                    // — old extractors get throttled by YouTube (near-zero speeds).
+                    if (it == YoutubeDL.UpdateStatus.DONE ||
+                        it == YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE
+                    ) {
+                        YoutubeDL.getInstance().version(context)?.let { version ->
+                            PreferenceUtil.encodeString(YT_DLP_VERSION, version)
                         }
+                        YT_DLP_UPDATE_TIME.updateLong(System.currentTimeMillis())
                     }
-                    val now = System.currentTimeMillis()
-                    YT_DLP_UPDATE_TIME.updateLong(now)
                 }
         }
 

@@ -68,6 +68,7 @@ import com.magen.download.ui.page.settings.network.WebViewPage
 import com.magen.download.ui.page.settings.troubleshooting.TroubleShootingPage
 import com.magen.download.ui.page.videolist.VideoListPage
 import com.magen.download.util.APP_MODE_SELECTED
+import com.magen.download.util.PERMISSIONS_REQUESTED
 import com.magen.download.util.PreferenceUtil.getBoolean
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
@@ -239,6 +240,14 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
         var modeSelected by rememberSaveable { mutableStateOf(APP_MODE_SELECTED.getBoolean()) }
         if (!modeSelected) {
             ModeSelectionOverlay(onConfirmed = { modeSelected = true })
+        }
+
+        // Right after the first-launch mode selection (and for existing installs
+        // upgrading from older versions): request every permission the app needs.
+        var permissionsHandled by
+            rememberSaveable { mutableStateOf(PERMISSIONS_REQUESTED.getBoolean()) }
+        if (modeSelected && !permissionsHandled) {
+            PermissionsGate(onDone = { permissionsHandled = true })
         }
     }
 }

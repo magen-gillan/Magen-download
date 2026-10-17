@@ -474,4 +474,18 @@
     <string name="shortcut_history_long">استعراض التحميلات المنجزة</string>
     <string name="shortcut_settings_label">الإعدادات</string>
     <string name="shortcut_settings_long">فتح إعدادات التطبيق</string>
+
+    <string name="permissions_title">أذونات التطبيق</string>
+    <string name="permissions_subtitle">امنح هذه الأذونات لضمان تحميل موثوق وبدون انقطاع</string>
+    <string name="permissions_notifications">الإشعارات</string>
+    <string name="permissions_notifications_desc">إظهار تقدم التحميل وإشعار الإكمال</string>
+    <string name="permissions_storage">الملفات والتخزين</string>
+    <string name="permissions_storage_desc">حفظ التحميلات في مجلد التنزيلات وإدارتها</string>
+    <string name="permissions_battery">تحسين البطارية</string>
+    <string name="permissions_battery_desc">منع نظام أندرويد من إيقاف التحميل عند العمل في الخلفية</string>
+    <string name="permissions_grant">منح الأذونات</string>
+    <string name="permissions_skip">تخطي الآن</string>
+    <string name="permissions_all_granted">تم منح جميع الأذونات ✓</string>
+    <string name="permissions_manage">إدارة الأذونات</string>
+    <string name="permissions_manage_desc">استعراض أذونات التطبيق: الإشعارات، الملفات، البطارية</string>
 </resources>

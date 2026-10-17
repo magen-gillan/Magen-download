@@ -96,8 +96,8 @@ object DownloadUtil {
                 addOption("--flat-playlist")
                 addOption("--dump-single-json")
                 addOption("-o", BASENAME)
-                addOption("-R", "1")
-                addOption("--socket-timeout", "5")
+                addOption("-R", "10")
+                addOption("--socket-timeout", "20")
                 downloadPreferences.run {
                     if (extractAudio) {
                         addOption("-x")
@@ -178,9 +178,9 @@ object DownloadUtil {
                     } else {
                         addOption("--dump-single-json")
                     }
-                    addOption("-R", "1")
+                    addOption("-R", "10")
                     addOption("--no-playlist")
-                    addOption("--socket-timeout", "5")
+                    addOption("--socket-timeout", "20")
                 }
             return getVideoInfo(request, taskKey)
         }
@@ -687,6 +687,13 @@ object DownloadUtil {
             request
                 .apply {
                     addOption("--no-mtime")
+                    // Robust network handling: mobile networks (especially 4G) drop
+                    // connections frequently, and YouTube throttles slow links. Explicit
+                    // timeouts and generous retries keep long downloads alive instead
+                    // of silently crawling or dying on the first hiccup.
+                    addOption("--socket-timeout", "20")
+                    addOption("--retries", "15")
+                    addOption("--fragment-retries", "15")
                     //                addOption("-v")
                     if (cookies) {
                         enableCookies(userAgentString)

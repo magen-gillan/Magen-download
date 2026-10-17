@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Print
 import androidx.compose.material.icons.outlined.PrintDisabled
 import androidx.compose.material.icons.outlined.RemoveDone
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.VerifiedUser
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material.icons.outlined.Update
 import androidx.compose.material.icons.outlined.Visibility
@@ -82,6 +83,7 @@ import com.magen.download.ui.component.PreferenceSubtitle
 import com.magen.download.ui.component.PreferenceSwitch
 import com.magen.download.ui.component.PreferenceSwitchWithDivider
 import com.magen.download.ui.component.MagenDialog
+import com.magen.download.ui.page.PermissionsGate
 import com.magen.download.ui.page.download.NotificationPermissionDialog
 import com.magen.download.util.CONFIGURE
 import com.magen.download.util.CLIPBOARD_SUGGESTION
@@ -120,6 +122,7 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
     var showSponsorBlockDialog by remember { mutableStateOf(false) }
     var showYtdlpDialog by remember { mutableStateOf(false) }
     var isUpdating by remember { mutableStateOf(false) }
+    var showPermissions by remember { mutableStateOf(false) }
 
     val downloadSubtitle by SUBTITLE.booleanState
 
@@ -197,6 +200,22 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
                             clipboardSuggestion = !clipboardSuggestion
                             CLIPBOARD_SUGGESTION.updateBoolean(clipboardSuggestion)
                         },
+                    )
+                }
+                item {
+                    PreferenceItem(
+                        title = stringResource(id = R.string.permissions_manage),
+                        description = stringResource(id = R.string.permissions_manage_desc),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Outlined.VerifiedUser,
+                                contentDescription = null,
+                                modifier =
+                                    Modifier.padding(start = 8.dp, end = 16.dp).size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        },
+                        onClick = { showPermissions = true },
                     )
                 }
                 //                item {
@@ -429,6 +448,9 @@ fun GeneralDownloadPreferences(onNavigateBack: () -> Unit, navigateToTemplate: (
     )
     if (showSponsorBlockDialog) {
         SponsorBlockDialog { showSponsorBlockDialog = false }
+    }
+    if (showPermissions) {
+        PermissionsGate(inSettings = true, onDone = { showPermissions = false })
     }
     if (showYtdlpDialog) {
         YtdlpUpdateChannelDialog(onDismissRequest = { showYtdlpDialog = false })
