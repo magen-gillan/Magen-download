@@ -34,7 +34,9 @@ class CrashReportActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val errorMessage: String = intent.getStringExtra("error_report").toString()
+        val errorMessage: String =
+            intent.getStringExtra("error_report")?.takeIf { it.isNotBlank() }
+                ?: getString(R.string.error_report_unavailable)
 
         setContent {
             SettingsProvider(WindowWidthSizeClass.Compact) {

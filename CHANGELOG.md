@@ -5,6 +5,79 @@ All notable changes (starting from v1.7.3) to stable releases will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.2.2] - 2026-10-17
+
+Security/logic review follow-up release: every finding verified against the
+code and fixed.
+
+### Fixed (P0 — critical)
+
+- **Foreground service lifecycle**: the download FGS killed itself on any
+  transient unbind (`stopSelf` in `onUnbind`) and was only ever bound, so a
+  configuration change or activity teardown stopped the foreground service and
+  its notification mid-download. It is now started with
+  `startForegroundService` + `START_STICKY`, survives transient unbinds while
+  downloads are busy, and is stopped explicitly when the queue drains.
+- **App updater robustness**: GitHub release lookups and APK downloads never
+  checked the HTTP status (a 403/404 body surfaced as a confusing JSON parse
+  error), and an error page with a matching content-length would be saved and
+  offered for installation. Status codes are now validated, responses are
+  closed defensively, and the downloaded file is verified to be a real APK
+  before the install flow runs.
+- **Download history deduplication**: history import compared whole rows
+  (including primary-key ids) and the table had no unique constraint, so
+  concurrent inserts and imports could duplicate rows. `videoPath` now carries
+  a UNIQUE index (DB v5→v6 manual migration that first removes existing
+  duplicates — an auto-migration would have crashed on duplicated data),
+  history inserts use `OnConflictStrategy.IGNORE`, and backup import matches
+  by the logical key instead of object equality.
+- **Directory selection**: choosing a custom-command directory computed the
+  resolved path and threw it away — the preference was never saved. The
+  resolution now happens in one place and the settings UI displays exactly
+  what was persisted (no divergent second resolution of the SAF URI).
+
+### Fixed (P1)
+
+- **Task restore without VideoInfo**: a queue task restored from backup whose
+  `VideoInfo` failed to serialize sat on `ReadyWithInfo` forever; it now falls
+  back to re-fetching info.
+- **Notification progress never receives -1**: lines without numeric progress
+  (merger/post-processing/custom commands) reported -1 into
+  `setProgress`; progress is clamped and rendered indeterminate, and the
+  progress notification is skipped entirely for text-only updates.
+- **yt-dlp update concurrency**: a single `Mutex` now serializes all update
+  paths (SimpleModeSetup first-run, the YtdlpUpdater composable, settings
+  buttons) and the update is postponed while V2 downloads are active — the
+  binary can no longer be swapped under running processes.
+- **Stable notification ids**: task/notification ids derived from
+  `hashCode()` are now a deterministic non-negative derivation
+  (`toStableNotificationId`), consistent across both download engines.
+
+### Fixed (P2 / hygiene)
+
+- Crash report screen no longer shows the literal text "null" when the report
+  extra is missing (`error_report_unavailable` string, EN + AR).
+- URL extraction switched to `Patterns.WEB_URL` with scheme validation and
+  trailing-punctuation trimming, handling unicode domains and
+  share-text punctuation far better than the old hand-rolled regex.
+- `color` module: duplicated `sourceCompatibility` / missing
+  `targetCompatibility` removed (the desynced JVM targets broke compilation);
+  the toolchain now drives both compilers consistently.
+- `allowBackup` now ships explicit `dataExtractionRules` / `fullBackupContent`
+  that exclude the WebView cookie store, MMKV preferences and temp dirs from
+  cloud backups and device transfers.
+- Media-scanner sweep of the download folder is chunked instead of
+  materializing every file of a large folder into one array.
+
+### Notes
+
+- Permissions intentionally kept as-is (all-files access, install packages,
+  battery-optimization exemption): they back user-requested features of this
+  self-distributed build; the backup rules above cover the data-safety side.
+- `lintVital` stays off in this repo (lint analysis OOM-kills the Gradle
+  daemon on <=4 GB build machines); the lint block documents how to re-enable
+  it with a baseline on a CI runner.
+
 ## [v2.0.0][2.0.0] - unreleased
 
 ### Notable changes from v1.13

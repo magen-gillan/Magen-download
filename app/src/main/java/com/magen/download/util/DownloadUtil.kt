@@ -647,7 +647,7 @@ object DownloadUtil {
             DownloadedVideoInfo(
                 id = id,
                 videoTitle = title,
-                videoAuthor = uploader ?: channel ?: uploaderId.toString(),
+                videoAuthor = uploader ?: channel ?: uploaderId ?: "",
                 videoUrl = webpageUrl ?: originalUrl.toString(),
                 thumbnailUrl = thumbnail.toHttpsUrl(),
                 videoPath = videoPath,

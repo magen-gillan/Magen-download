@@ -294,6 +294,7 @@
     <string name="convert_subtitle">تحويل الترجمة</string>
     <string name="unknown_error_title">عفواً! حدث خطأ ما</string>
     <string name="copy_and_exit">النسخ والخروج</string>
+    <string name="error_report_unavailable">تقرير الخطأ غير متاح، يرجى إعادة إحداث المشكلة ثم المحاولة مجدداً.</string>
     <string name="convert_subtitle_desc">تحويل الترجمات إلى صيغة أخرى</string>
     <string name="split_video">تقسيم الفيديو</string>
     <string name="split_video_msg">سيتم تقسيم الفيديو إلى %1$d فصلاً</string>

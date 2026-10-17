@@ -307,6 +307,7 @@
     <string name="split_video_msg">Video will be split into %1$d chapters</string>
     <string name="unknown_error_title">Oops! Something went wrong</string>
     <string name="copy_and_exit">Copy and exit</string>
+    <string name="error_report_unavailable">The error report is unavailable. Please try reproducing the issue.</string>
     <string name="expand">Expand</string>
     <string name="new_task">New download task</string>
     <string name="start">Start</string>

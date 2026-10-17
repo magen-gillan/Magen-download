@@ -24,6 +24,7 @@ import com.magen.download.util.FileUtil
 import com.magen.download.util.NotificationUtil
 import com.magen.download.util.PreferenceUtil
 import com.magen.download.util.VideoInfo
+import com.magen.download.util.toStableNotificationId
 import com.yausername.youtubedl_android.YoutubeDL
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -242,7 +243,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         }
 
     private val Task.notificationId: Int
-        get() = id.hashCode()
+        get() = id.toStableNotificationId()
 
     /** Processes pending tasks, prioritizing downloads. */
     private fun doYourWork() {
@@ -314,7 +315,15 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         // Resuming a canceled/error task lands here with the state already set
         // to ReadyWithInfo by restartImpl(); a strict check() would throw and
         // kill the scheduler. Guard instead of crash.
-        if (downloadState != ReadyWithInfo || info == null) return
+        if (downloadState != ReadyWithInfo) return
+        if (info == null) {
+            // Task restored from backup without a serializable VideoInfo:
+            // silently returning would leave it stuck on ReadyWithInfo forever
+            // (the scheduler would re-pick it every cycle and do nothing).
+            // Fall back to re-fetching the info instead.
+            downloadState = Idle
+            return
+        }
         if (type is TypeInfo.CustomCommand) {
             execute()
             return
@@ -345,8 +354,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                                     } else if (preState.progressText != text) {
                                         downloadState = preState.copy(progressText = text)
                                     }
+                                    // Only post a notification for lines with real
+                                    // numeric progress: -1 would render a bogus 0%
+                                    // determinate bar in the notification shade.
                                     val now = System.currentTimeMillis()
-                                    if (now - lastNotifyTime >= 500) {
+                                    if (progressPercentage >= 0f && now - lastNotifyTime >= 500) {
                                         lastNotifyTime = now
                                         NotificationUtil.notifyProgress(
                                             notificationId = notificationId,
@@ -461,11 +473,20 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         progressPercentage,
                         _,
                         text ->
-                        val progress = progressPercentage / 100f
                         when (val preState = downloadState) {
                             is Running -> {
-                                downloadState =
-                                    preState.copy(progress = progress, progressText = text)
+                                // Same guard as download(): lines without a
+                                // numeric progress report -1 — keep the text but
+                                // never regress the progress bar.
+                                if (progressPercentage >= 0f) {
+                                    downloadState =
+                                        preState.copy(
+                                            progress = progressPercentage / 100f,
+                                            progressText = text,
+                                        )
+                                } else if (preState.progressText != text) {
+                                    downloadState = preState.copy(progressText = text)
+                                }
                                 NotificationUtil.makeNotificationForCustomCommand(
                                     notificationId = notificationId,
                                     taskId = id,

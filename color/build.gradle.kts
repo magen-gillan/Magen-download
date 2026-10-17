@@ -4,10 +4,6 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
-java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
-}
 kotlin {
     jvmToolchain(21)
 }
@@ -17,10 +13,9 @@ android {
         minSdk = 21
     }
     namespace = "com.magen.download.color"
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        sourceCompatibility = JavaVersion.VERSION_1_8
-    }
+    // No explicit compileOptions: the kotlin jvmToolchain(21) below drives both
+    // javac and kotlinc to the same JVM target. The old explicit 1.8 block
+    // desynced the two compilers ("Inconsistent JVM-target compatibility").
     buildTypes {
         release {
             proguardFiles(

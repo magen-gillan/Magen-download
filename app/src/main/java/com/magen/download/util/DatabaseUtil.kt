@@ -16,7 +16,10 @@ import kotlinx.coroutines.launch
 
 object DatabaseUtil {
     private const val DATABASE_NAME = "app_database"
-    private val db = Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME).build()
+    private val db =
+        Room.databaseBuilder(context, AppDatabase::class.java, DATABASE_NAME)
+            .addMigrations(AppDatabase.MIGRATION_5_6)
+            .build()
     private val dao = db.videoInfoDao()
 
     fun insertInfo(vararg infoList: DownloadedVideoInfo) {
@@ -79,12 +82,16 @@ object DatabaseUtil {
         var cnt = 0
         backup.run {
             if (types.contains(BackupType.DownloadHistory)) {
-                val itemList = getDownloadHistory()
-
                 if (!downloadHistory.isNullOrEmpty()) {
+                    // Deduplicate by the LOGICAL key (videoPath), not by full
+                    // data-class equality: exported rows carry their original
+                    // primary-key ids, so comparing whole objects both missed
+                    // real duplicates (same path, different id) and wrongly
+                    // skipped legit rows (same id, different path).
+                    val existingPaths = getDownloadHistory().map { it.videoPath }.toHashSet()
                     dao.insertAll(
                         downloadHistory
-                            .filterNot { itemList.contains(it) }
+                            .filter { it.videoPath !in existingPaths }
                             .map { it.copy(id = 0) }
                             .also { cnt += it.size }
                     )

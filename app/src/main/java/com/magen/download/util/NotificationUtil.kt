@@ -93,7 +93,10 @@ object NotificationUtil {
         NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_notify)
             .setContentTitle(title)
-            .setProgress(PROGRESS_MAX, progress, progress <= 0)
+            // yt-dlp reports -1 for lines without numeric progress (merger,
+            // post-processing...): clamp so the notification progress bar never
+            // receives a negative value, and render it indeterminate instead.
+            .setProgress(PROGRESS_MAX, progress.coerceIn(0, PROGRESS_MAX), progress <= 0)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
@@ -250,7 +253,9 @@ object NotificationUtil {
             )
             .setContentText(text)
             .setOngoing(true)
-            .setProgress(PROGRESS_MAX, progress, progress == -1)
+            // Negative progress (-1 = no numeric progress on this line) means
+            // indeterminate; never feed the raw negative value to the bar.
+            .setProgress(PROGRESS_MAX, progress.coerceIn(0, PROGRESS_MAX), progress < 0)
             .addAction(
                 R.drawable.outline_cancel_24,
                 context.getString(R.string.cancel),

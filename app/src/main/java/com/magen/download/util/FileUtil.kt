@@ -137,8 +137,12 @@ object FileUtil {
             .walkTopDown()
             .filter { it.isFile }
             .map { it.absolutePath }
-            .run {
-                MediaScannerConnection.scanFile(context, this.toList().toTypedArray(), null, null)
+            // Chunked scanning: materializing every file of a large download
+            // folder into one array (and one scan call) spiked memory on
+            // devices with thousands of downloaded files.
+            .chunked(200)
+            .forEach { chunk ->
+                MediaScannerConnection.scanFile(context, chunk.toTypedArray(), null, null)
             }
 
     @CheckResult

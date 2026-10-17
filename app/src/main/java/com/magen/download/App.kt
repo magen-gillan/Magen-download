@@ -151,17 +151,46 @@ class App : Application() {
         @Synchronized
         fun startService() {
             if (isServiceRunning) return
+            isServiceRunning = true
             Intent(context.applicationContext, DownloadService::class.java).also { intent ->
-                context.applicationContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                // startService keeps the foreground service alive even when the
+                // binder connection drops transiently (activity recreation,
+                // config change). With the old bind-only lifecycle the FGS and
+                // its notification were torn down mid-download on unbind.
+                runCatching {
+                    if (Build.VERSION.SDK_INT >= 26) {
+                        context.applicationContext.startForegroundService(intent)
+                    } else {
+                        context.applicationContext.startService(intent)
+                    }
+                }
+                    .onFailure {
+                        // Background FGS start restrictions (Android 12+):
+                        // fall back to the binding only — downloads still run
+                        // in-process, we just lose the foreground priority.
+                        it.printStackTrace()
+                    }
+                runCatching {
+                    context.applicationContext.bindService(
+                        intent,
+                        connection,
+                        Context.BIND_AUTO_CREATE,
+                    )
+                }.onFailure { it.printStackTrace() }
             }
         }
 
         @Synchronized
         fun stopService() {
             if (!isServiceRunning) return
+            isServiceRunning = false
             try {
-                isServiceRunning = false
-                context.applicationContext.run { unbindService(connection) }
+                context.applicationContext.run {
+                    unbindService(connection)
+                    // Stop the (possibly startService-started) foreground
+                    // service as well — the queue drained, nothing is running.
+                    stopService(Intent(this, DownloadService::class.java))
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -174,22 +203,29 @@ class App : Application() {
                     absolutePath
                 }
 
-        fun updateDownloadDir(uri: Uri, directoryType: Directory) {
+        /**
+         * Resolves and persists the directory for [directoryType]. Returns the
+         * resolved filesystem path so callers (e.g. the directory settings UI)
+         * display exactly what was stored instead of re-resolving the URI a
+         * second time with possibly diverging results.
+         */
+        fun updateDownloadDir(uri: Uri, directoryType: Directory): String {
+            val path = FileUtil.getRealPath(uri)
             when (directoryType) {
                 Directory.AUDIO -> {
-                    val path = FileUtil.getRealPath(uri)
                     audioDownloadDir = path
                     PreferenceUtil.encodeString(AUDIO_DIRECTORY, path)
                 }
 
                 Directory.VIDEO -> {
-                    val path = FileUtil.getRealPath(uri)
                     videoDownloadDir = path
                     PreferenceUtil.encodeString(VIDEO_DIRECTORY, path)
                 }
 
                 Directory.CUSTOM_COMMAND -> {
-                    val path = FileUtil.getRealPath(uri)
+                    // Previously the resolved path was computed and discarded —
+                    // the custom-command directory preference was never saved.
+                    COMMAND_DIRECTORY.updateString(path)
                 }
 
                 Directory.SDCARD -> {
@@ -201,6 +237,7 @@ class App : Application() {
                     PreferenceUtil.encodeString(SDCARD_URI, uri.toString())
                 }
             }
+            return path
         }
 
         fun getVersionReport(): String {

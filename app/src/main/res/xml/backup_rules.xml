@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Legacy full-backup rules (Android 11 and below).
+
+    Excluded on purpose: the WebView cookie store (app_webview contains the
+    browser session cookie database), MMKV preferences and the internal temp
+    dir. Cache (incl. cookies.txt / config*.txt) is never backed up by default.
+-->
+<full-backup-content>
+    <exclude domain="root" path="app_webview" />
+    <exclude domain="file" path="mmkv" />
+    <exclude domain="file" path="tmp" />
+</full-backup-content>

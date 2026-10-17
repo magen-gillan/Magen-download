@@ -47,7 +47,7 @@ android {
         applicationId = "com.magen.download"
         minSdk = 24
         targetSdk = 35
-        versionCode = 202_010_400
+        versionCode = 202_020_400
         check(versionCode == currentVersionCode)
 
         versionName = baseVersionName
@@ -137,6 +137,14 @@ android {
 
     lint {
         disable.addAll(listOf("MissingTranslation", "ExtraTranslation", "MissingQuantity"))
+        // lintVital (checkReleaseBuilds) is disabled because the lint analysis
+        // OOM-kills the Gradle daemon on memory-constrained build machines
+        // (<=4 GB). Re-enable together with a committed lint-baseline.xml on a
+        // CI runner with >=8 GB heap per the security review, so only NEW
+        // issues fail the release:
+        //   1. ./gradlew :app:updateLintBaseline
+        //   2. baseline = file("lint-baseline.xml")
+        //   3. checkReleaseBuilds = true
         checkReleaseBuilds = false
     }
 

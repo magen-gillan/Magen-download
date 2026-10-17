@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -28,8 +30,10 @@ import kotlinx.serialization.json.Json
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.get
 
-object UpdateUtil {
+object UpdateUtil : KoinComponent {
 
     private const val OWNER = "magen-gillan"
     private const val REPO = "Magen-download"
@@ -40,6 +44,23 @@ object UpdateUtil {
     private const val TAG = "UpdateUtil"
 
     private val client = OkHttpClient()
+
+    /**
+     * Serializes yt-dlp update runs. Concurrent callers (SimpleModeSetup at
+     * first launch + the YtdlpUpdater composable + settings buttons) used to
+     * delete/re-extract the yt-dlp directory at the same time, producing
+     * intermittent "update failed" errors and corrupt installs.
+     */
+    private val updateMutex = Mutex()
+
+    /**
+     * Lazy lookup: Koin may not be started yet when UpdateUtil is first
+     * touched (App.onCreate), so resolve on first use instead of init.
+     */
+    private val downloaderV2: com.magen.download.download.DownloaderV2? by lazy {
+        runCatching { get<com.magen.download.download.DownloaderV2>() }.getOrNull()
+    }
+
     private val requestForLatestRelease =
         Request.Builder()
             .url("https://api.github.com/repos/${OWNER}/${REPO}/releases/latest")
@@ -55,54 +76,72 @@ object UpdateUtil {
 
     suspend fun updateYtDlp(): YoutubeDL.UpdateStatus? =
         withContext(Dispatchers.IO) {
-            val channel =
-                when (YT_DLP_UPDATE_CHANNEL.getInt()) {
-                    YT_DLP_NIGHTLY -> YoutubeDL.UpdateChannel.NIGHTLY
-                    else -> YoutubeDL.UpdateChannel.STABLE
+            updateMutex.withLock {
+                // Never replace the yt-dlp binary while downloads are active:
+                // the updater deletes the yt-dlp directory and re-extracts it,
+                // which breaks every yt-dlp process alive in that window.
+                // (All call sites — SimpleModeSetup, YtdlpUpdater, settings —
+                // are routed through this single guard now.)
+                if ((downloaderV2?.countBusyTasks() ?: 0) > 0) {
+                    Log.w(TAG, "yt-dlp update postponed: downloads are active")
+                    return@withLock null
                 }
 
-            YoutubeDL.getInstance()
-                .updateYoutubeDL(appContext = context, updateChannel = channel)
-                .also {
-                    // Only refresh the "last successful update" time when the update
-                    // actually succeeded (DONE / ALREADY_UP_TO_DATE; on failure the
-                    // library throws, so this block never runs). Recording the time
-                    // on failure would postpone the next retry by a whole interval
-                    // (a week), leaving the user on a stale yt-dlp build — old
-                    // extractors get throttled by YouTube (near-zero speeds).
-                    if (it == YoutubeDL.UpdateStatus.DONE ||
-                        it == YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE
-                    ) {
-                        // A failed version lookup right after a successful update
-                        // must not prevent recording the update time (that would
-                        // trigger a redundant re-update on next launch).
-                        runCatching {
-                            YoutubeDL.getInstance().version(context)?.let { version ->
-                                PreferenceUtil.encodeString(YT_DLP_VERSION, version)
-                            }
-                        }.onFailure { it.printStackTrace() }
-                        YT_DLP_UPDATE_TIME.updateLong(System.currentTimeMillis())
+                val channel =
+                    when (YT_DLP_UPDATE_CHANNEL.getInt()) {
+                        YT_DLP_NIGHTLY -> YoutubeDL.UpdateChannel.NIGHTLY
+                        else -> YoutubeDL.UpdateChannel.STABLE
                     }
-                }
+
+                YoutubeDL.getInstance()
+                    .updateYoutubeDL(appContext = context, updateChannel = channel)
+                    .also {
+                        // Only refresh the "last successful update" time when the update
+                        // actually succeeded (DONE / ALREADY_UP_TO_DATE; on failure the
+                        // library throws, so this block never runs). Recording the time
+                        // on failure would postpone the next retry by a whole interval
+                        // (a week), leaving the user on a stale yt-dlp build — old
+                        // extractors get throttled by YouTube (near-zero speeds).
+                        if (it == YoutubeDL.UpdateStatus.DONE ||
+                            it == YoutubeDL.UpdateStatus.ALREADY_UP_TO_DATE
+                        ) {
+                            // A failed version lookup right after a successful update
+                            // must not prevent recording the update time (that would
+                            // trigger a redundant re-update on next launch).
+                            runCatching {
+                                YoutubeDL.getInstance().version(context)?.let { version ->
+                                    PreferenceUtil.encodeString(YT_DLP_VERSION, version)
+                                }
+                            }.onFailure { it.printStackTrace() }
+                            YT_DLP_UPDATE_TIME.updateLong(System.currentTimeMillis())
+                        }
+                    }
+            }
         }
 
     /** Prefer the release title, fall back to the (always-present) tag name. */
     private fun Release.versionOf(): Version =
         (name?.takeIf { it.isNotBlank() } ?: tagName).toVersion()
 
-    private fun getLatestRelease(): Release =
-        client.newCall(requestForReleases).execute().body.use {
-            val releaseList = jsonFormat.decodeFromString<List<Release>>(it.string())
+    private fun getLatestRelease(): Release {
+        client.newCall(requestForReleases).execute().use { response ->
+            // A 403 (rate limit) / 404 used to fall through to JSON parsing and
+            // surface as a confusing deserialization error; check the status
+            // first and close the response defensively.
+            if (!response.isSuccessful) {
+                throw Exception("GitHub releases request failed: HTTP ${response.code}")
+            }
+            val body = response.body ?: throw Exception("GitHub releases: empty response body")
+            val releaseList = jsonFormat.decodeFromString<List<Release>>(body.string())
             val stable = UPDATE_CHANNEL.getInt() == STABLE
             // Version from name with tag_name fallback: GitHub releases without
             // an explicit title have name == null and would sort as 0.0.0,
             // silently disabling the app updater.
-            val latestRelease =
-                releaseList
-                    .filter { if (stable) it.versionOf() is Version.Stable else true }
-                    .maxByOrNull { it.versionOf() } ?: throw Exception("null response")
-            latestRelease
+            return releaseList
+                .filter { if (stable) it.versionOf() is Version.Stable else true }
+                .maxByOrNull { it.versionOf() } ?: throw Exception("no releases found")
         }
+    }
 
     fun checkForUpdate(context: Context = App.context): Release? {
         val currentVersion = context.getCurrentVersion()
@@ -198,7 +237,18 @@ object UpdateUtil {
             val request = Request.Builder().url(targetUrl).build()
             try {
                 val response = client.newCall(request).execute()
+                // A CDN/HTTP error page (404/403 HTML) would otherwise be saved
+                // byte-for-byte and later offered for installation.
+                if (!response.isSuccessful) {
+                    val code = response.code
+                    response.close()
+                    throw Exception("APK download failed: HTTP $code")
+                }
                 val responseBody = response.body
+                if (responseBody == null) {
+                    response.close()
+                    throw Exception("APK download failed: empty response body")
+                }
                 return@withContext responseBody.downloadFileWithProgress(context.getLatestApk())
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -247,6 +297,16 @@ object UpdateUtil {
                                 else -> deleteFile = false
                             }
                         }
+                    }
+
+                    // Integrity gate: an error page (or truncated file) that
+                    // happened to match the content-length would otherwise be
+                    // offered for installation. A real APK always parses.
+                    if (
+                        App.context.packageManager
+                            .getPackageArchiveInfo(saveFile.absolutePath, 0) == null
+                    ) {
+                        throw Exception("downloaded file is not a valid APK")
                     }
 
                     emit(DownloadStatus.Finished(saveFile))

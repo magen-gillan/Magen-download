@@ -1,6 +1,7 @@
 package com.magen.download.util
 
 import android.content.Context
+import android.util.Patterns
 import android.widget.Toast
 import androidx.annotation.MainThread
 import androidx.compose.runtime.Composable
@@ -10,7 +11,7 @@ import com.magen.download.App
 import com.magen.download.App.Companion.applicationScope
 import com.magen.download.App.Companion.context
 import com.magen.download.R
-import java.util.regex.Pattern
+import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -69,8 +70,39 @@ fun String.isNumberInRange(start: Int, end: Int): Boolean {
         this.toInt() <= end
 }
 
-private const val URL_REGEX_PATTERN =
-    "(http|https)://[\\w\\-_]+(\\.[\\w\\-_]+)+([\\w\\-.,@?^=%&:/~+#]*[\\w\\-@?^=%&/~+#])?"
+/**
+ * Stable, non-negative notification id derived from a task key.
+ *
+ * The raw hashCode() can be negative (notification ids accept negatives, but
+ * tools that treat them as unsigned get confused); deriving the id explicitly
+ * and deterministically from the task key keeps "one id per task" true across
+ * restarts while guaranteeing a sane value.
+ */
+fun String.toStableNotificationId(): Int =
+    hashCode().let { if (it == Int.MIN_VALUE) 0 else abs(it) }
+
+private const val URL_TRAILING_PUNCTUATION =
+    ".,;:!?)]}>\"'\u2019\u00bb\u203a\u3001\uff0c\u3002\uff01\uff1f\uff1a\uff1b\u060c"
+
+fun findURLsFromString(input: String, firstMatchOnly: Boolean = false): List<String> {
+    val result = mutableListOf<String>()
+
+    with(Patterns.WEB_URL.matcher(input)) {
+        while (find()) {
+            val candidate = group()?.trim() ?: continue
+            // Links shared from browsers/chat apps arrive glued to sentence
+            // punctuation ("check https://youtu.be/x."); trim it so yt-dlp
+            // receives a clean URL.
+            val url = candidate.trimEnd(*URL_TRAILING_PUNCTUATION.toCharArray())
+            // WEB_URL also matches bare domains ("example.com"); only accept
+            // fully-scheme'd http(s) links that yt-dlp can actually fetch.
+            if (!url.startsWith("http://") && !url.startsWith("https://")) continue
+            result += url
+            if (firstMatchOnly) break
+        }
+    }
+    return result
+}
 
 fun String.isNumberInRange(range: IntRange): Boolean = this.isNumberInRange(range.first, range.last)
 
@@ -115,22 +147,6 @@ fun getErrorReport(th: Throwable, url: String): String =
 )
 fun matchUrlFromString(s: String, isMatchingMultiLink: Boolean = false): String =
     findURLsFromString(s, !isMatchingMultiLink).joinToString(separator = "\n")
-
-fun findURLsFromString(input: String, firstMatchOnly: Boolean = false): List<String> {
-    val result = mutableListOf<String>()
-    val pattern = Pattern.compile(URL_REGEX_PATTERN)
-
-    with(pattern.matcher(input)) {
-        if (!firstMatchOnly) {
-            while (find()) {
-                result += group()
-            }
-        } else {
-            if (find()) result += (group())
-        }
-    }
-    return result
-}
 
 fun connectWithDelimiter(vararg strings: String?, delimiter: String): String =
     strings

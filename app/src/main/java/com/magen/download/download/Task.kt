@@ -150,7 +150,9 @@ data class Task(
                 return ViewState(
                     url = info.originalUrl.toString(),
                     title = info.title,
-                    uploader = info.uploader ?: info.channel ?: info.uploaderId.toString(),
+                    // uploaderId is nullable: .toString() would surface the
+                    // literal text "null" to the user when all three are absent.
+                    uploader = info.uploader ?: info.channel ?: info.uploaderId ?: "",
                     extractorKey = info.extractorKey,
                     duration = info.duration?.roundToInt() ?: 0,
                     thumbnailUrl = info.thumbnail.toHttpsUrl(),

@@ -17,6 +17,7 @@ import com.magen.download.util.COMMAND_DIRECTORY
 import com.magen.download.util.DownloadUtil
 import com.magen.download.util.FileUtil
 import com.magen.download.util.NotificationUtil
+import com.magen.download.util.toStableNotificationId
 import com.magen.download.util.PlaylistEntry
 import com.magen.download.util.PlaylistResult
 import com.magen.download.util.PreferenceUtil.getString
@@ -570,5 +571,5 @@ object Downloader {
 
     fun onProcessStarted() = mutableProcessCount.update { it + 1 }
 
-    fun String.toNotificationId(): Int = this.hashCode()
+    fun String.toNotificationId(): Int = this.toStableNotificationId()
 }

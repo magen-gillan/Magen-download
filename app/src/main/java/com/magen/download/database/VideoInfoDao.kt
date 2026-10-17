@@ -3,6 +3,7 @@ package com.magen.download.database
 import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
@@ -15,9 +16,13 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface VideoInfoDao {
 
-    @Insert suspend fun insert(info: DownloadedVideoInfo)
+    // IGNORE: the UNIQUE index on videoPath deduplicates atomically at the
+    // storage layer — concurrent inserts of the same path can no longer create
+    // duplicate rows (the old read-then-insert was racy across calls).
+    @Insert(onConflict = OnConflictStrategy.IGNORE) suspend fun insert(info: DownloadedVideoInfo)
 
-    @Insert suspend fun insertAll(infoList: List<DownloadedVideoInfo>)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(infoList: List<DownloadedVideoInfo>)
 
     @Query("select * from DownloadedVideoInfo")
     fun getDownloadHistoryFlow(): Flow<List<DownloadedVideoInfo>>

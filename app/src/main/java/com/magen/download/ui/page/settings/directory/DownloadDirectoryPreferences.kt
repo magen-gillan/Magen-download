@@ -200,16 +200,18 @@ fun DownloadDirectoryPreferences(onNavigateBack: () -> Unit) {
             }
         ) {
             it?.let { uri ->
-                App.updateDownloadDir(uri, editingDirectory)
+                // Single source of truth: updateDownloadDir resolves + stores
+                // the path and returns it, so the UI shows exactly what was
+                // persisted (the old code re-resolved the URI independently).
+                val resolvedPath = App.updateDownloadDir(uri, editingDirectory)
                 if (editingDirectory != Directory.SDCARD) {
-                    val path = FileUtil.getRealPath(uri)
                     when (editingDirectory) {
                         Directory.AUDIO -> {
-                            audioDirectoryText = path
+                            audioDirectoryText = resolvedPath
                         }
 
                         Directory.VIDEO -> {
-                            videoDirectoryText = path
+                            videoDirectoryText = resolvedPath
                         }
 
                         Directory.SDCARD -> {
@@ -217,7 +219,7 @@ fun DownloadDirectoryPreferences(onNavigateBack: () -> Unit) {
                         }
 
                         Directory.CUSTOM_COMMAND -> {
-                            customCommandDirectory = path
+                            customCommandDirectory = resolvedPath
                         }
                     }
                 }
