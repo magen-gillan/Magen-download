@@ -33,6 +33,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -42,6 +43,16 @@ import org.koin.core.component.KoinComponent
 private const val TAG = "DownloaderV2"
 
 private const val MAX_CONCURRENCY = 3
+
+// App-level retry for transient yt-dlp/network failures. The internal yt-dlp
+// retries (-R 10 / --retries 15) only cover HTTP requests inside the process;
+// if the whole invocation dies on a transient network hiccup the task used to
+// go straight to Error and only succeeded after the user pressed restart.
+// Auto-retry instead: info fetch is cheap (3 attempts), downloads resume from
+// their .part files so a single retry is enough (2 attempts).
+private const val FETCH_INFO_ATTEMPTS = 3
+private const val DOWNLOAD_ATTEMPTS = 2
+private const val RETRY_BASE_DELAY_MS = 2000L
 
 interface DownloaderV2 {
     fun getTaskStateMap(): SnapshotStateMap<Task, Task.State>
@@ -284,29 +295,53 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             // Default pool: on low-core devices saturated Default threads starve
             // the scheduler collector and progress freezes.
             .launch(Dispatchers.IO) {
-                DownloadUtil.fetchVideoInfoFromUrl(
-                        url = url,
-                        playlistIndex = playlistIndex,
-                        preferences = preferences,
-                        taskKey = id,
-                    )
-                    .onSuccess {
-                        info = it
-                        downloadState = ReadyWithInfo
-                        viewState = Task.ViewState.fromVideoInfo(it)
+                // Transient network/extractor failures (socket timeout, 5xx,
+                // throttled first request) used to surface as an error even
+                // though an immediate manual retry succeeded. Retry here with
+                // a small backoff before giving up; a cancel (state no longer
+                // FetchingInfo) bails out between attempts.
+                var lastError: Throwable? = null
+                repeat(FETCH_INFO_ATTEMPTS) { attempt ->
+                    if (downloadState !is FetchingInfo) return@launch
+                    if (attempt > 0) {
+                        Log.w(TAG, "fetchInfo retry #$attempt for $url")
+                        delay(RETRY_BASE_DELAY_MS * attempt)
+                        if (downloadState !is FetchingInfo) return@launch
                     }
-                    .onFailure { throwable ->
-                        if (throwable is YoutubeDL.CanceledException) {
-                            return@onFailure
-                        }
-                        task.downloadState = Error(throwable = throwable, action = FetchInfo)
-                        NotificationUtil.notifyError(
-                            title = viewState.title,
-                            textId = R.string.fetch_info_error_msg,
-                            notificationId = notificationId,
-                            report = throwable.stackTraceToString(),
+                    DownloadUtil.fetchVideoInfoFromUrl(
+                            url = url,
+                            playlistIndex = playlistIndex,
+                            preferences = preferences,
+                            taskKey = id,
                         )
-                    }
+                        .onSuccess {
+                            info = it
+                            downloadState = ReadyWithInfo
+                            viewState = Task.ViewState.fromVideoInfo(it)
+                        }
+                        .onFailure { throwable ->
+                            if (throwable is YoutubeDL.CanceledException) {
+                                return@onFailure
+                            }
+                            Log.w(
+                                TAG,
+                                "fetchInfo attempt ${attempt + 1}/$FETCH_INFO_ATTEMPTS failed",
+                                throwable,
+                            )
+                            lastError = throwable
+                        }
+                    if (downloadState == ReadyWithInfo) return@launch
+                }
+                lastError?.let { throwable ->
+                    if (downloadState !is FetchingInfo) return@launch
+                    task.downloadState = Error(throwable = throwable, action = FetchInfo)
+                    NotificationUtil.notifyError(
+                        title = viewState.title,
+                        textId = R.string.fetch_info_error_msg,
+                        notificationId = notificationId,
+                        report = throwable.stackTraceToString(),
+                    )
+                }
             }
             .also { job -> downloadState = FetchingInfo(job = job, taskId = id) }
     }
@@ -334,82 +369,103 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 // every output line (download ticks, merger, post-processing),
                 // so refresh the notification at most twice per second.
                 var lastNotifyTime = 0L
-                DownloadUtil.downloadVideo(
-                        videoInfo = info,
-                        taskId = id,
-                        downloadPreferences = preferences,
-                        progressCallback = { progressPercentage, _, text ->
-                            when (val preState = downloadState) {
-                                is Running -> {
-                                    // Lines that don't report progress (e.g.
-                                    // "[Merger]", "[ExtractAudio]") arrive as -1;
-                                    // keep the status text but never regress the
-                                    // progress bar.
-                                    if (progressPercentage >= 0f) {
-                                        downloadState =
-                                            preState.copy(
-                                                progress = progressPercentage / 100f,
-                                                progressText = text,
+                // One app-level retry for transient whole-process failures;
+                // yt-dlp resumes from the .part file so nothing is lost.
+                var lastError: Throwable? = null
+                repeat(DOWNLOAD_ATTEMPTS) { attempt ->
+                    if (downloadState !is Running) return@launch
+                    if (attempt > 0) {
+                        Log.w(TAG, "download retry #$attempt (resuming .part) for $url")
+                        delay(RETRY_BASE_DELAY_MS * 2)
+                        if (downloadState !is Running) return@launch
+                    }
+                    DownloadUtil.downloadVideo(
+                            videoInfo = info,
+                            taskId = id,
+                            downloadPreferences = preferences,
+                            progressCallback = { progressPercentage, _, text ->
+                                when (val preState = downloadState) {
+                                    is Running -> {
+                                        // Lines that don't report progress (e.g.
+                                        // "[Merger]", "[ExtractAudio]") arrive as -1;
+                                        // keep the status text but never regress the
+                                        // progress bar.
+                                        if (progressPercentage >= 0f) {
+                                            downloadState =
+                                                preState.copy(
+                                                    progress = progressPercentage / 100f,
+                                                    progressText = text,
+                                                )
+                                        } else if (preState.progressText != text) {
+                                            downloadState = preState.copy(progressText = text)
+                                        }
+                                        // Only post a notification for lines with real
+                                        // numeric progress: -1 would render a bogus 0%
+                                        // determinate bar in the notification shade.
+                                        val now = System.currentTimeMillis()
+                                        if (progressPercentage >= 0f && now - lastNotifyTime >= 500) {
+                                            lastNotifyTime = now
+                                            NotificationUtil.notifyProgress(
+                                                notificationId = notificationId,
+                                                progress = progressPercentage.toInt(),
+                                                text = text,
+                                                title = viewState.title,
+                                                taskId = id,
                                             )
-                                    } else if (preState.progressText != text) {
-                                        downloadState = preState.copy(progressText = text)
+                                        }
                                     }
-                                    // Only post a notification for lines with real
-                                    // numeric progress: -1 would render a bogus 0%
-                                    // determinate bar in the notification shade.
-                                    val now = System.currentTimeMillis()
-                                    if (progressPercentage >= 0f && now - lastNotifyTime >= 500) {
-                                        lastNotifyTime = now
-                                        NotificationUtil.notifyProgress(
-                                            notificationId = notificationId,
-                                            progress = progressPercentage.toInt(),
-                                            text = text,
-                                            title = viewState.title,
-                                            taskId = id,
-                                        )
-                                    }
+                                    else -> {}
                                 }
-                                else -> {}
-                            }
-                        },
-                    )
-                    .onSuccess { pathList ->
-                        downloadState = Completed(pathList.firstOrNull())
-
-                        val text =
-                            appContext.getString(
-                                if (pathList.isEmpty()) R.string.status_completed
-                                else R.string.download_finish_notification
-                            )
-                        FileUtil.createIntentForOpeningFile(pathList.firstOrNull()).run {
-                            NotificationUtil.finishNotification(
-                                notificationId,
-                                title = viewState.title,
-                                text = text,
-                                intent =
-                                    if (this != null)
-                                        PendingIntent.getActivity(
-                                            appContext,
-                                            0,
-                                            this,
-                                            PendingIntent.FLAG_IMMUTABLE,
-                                        )
-                                    else null,
-                            )
-                        }
-                    }
-                    .onFailure { throwable ->
-                        if (throwable is YoutubeDL.CanceledException) {
-                            return@onFailure
-                        }
-                        downloadState = Error(throwable = throwable, action = Download)
-                        NotificationUtil.notifyError(
-                            title = viewState.title,
-                            textId = R.string.download_error_msg,
-                            notificationId = notificationId,
-                            report = throwable.stackTraceToString(),
+                            },
                         )
-                    }
+                        .onSuccess { pathList ->
+                            downloadState = Completed(pathList.firstOrNull())
+
+                            val text =
+                                appContext.getString(
+                                    if (pathList.isEmpty()) R.string.status_completed
+                                    else R.string.download_finish_notification
+                                )
+                            FileUtil.createIntentForOpeningFile(pathList.firstOrNull()).run {
+                                NotificationUtil.finishNotification(
+                                    notificationId,
+                                    title = viewState.title,
+                                    text = text,
+                                    intent =
+                                        if (this != null)
+                                            PendingIntent.getActivity(
+                                                appContext,
+                                                0,
+                                                this,
+                                                PendingIntent.FLAG_IMMUTABLE,
+                                            )
+                                        else null,
+                                )
+                            }
+                        }
+                        .onFailure { throwable ->
+                            if (throwable is YoutubeDL.CanceledException) {
+                                return@onFailure
+                            }
+                            Log.w(
+                                TAG,
+                                "download attempt ${attempt + 1}/$DOWNLOAD_ATTEMPTS failed",
+                                throwable,
+                            )
+                            lastError = throwable
+                        }
+                    if (downloadState is Completed) return@launch
+                }
+                lastError?.let { throwable ->
+                    if (downloadState !is Running) return@launch
+                    downloadState = Error(throwable = throwable, action = Download)
+                    NotificationUtil.notifyError(
+                        title = viewState.title,
+                        textId = R.string.download_error_msg,
+                        notificationId = notificationId,
+                        report = throwable.stackTraceToString(),
+                    )
+                }
             }
             .also { job -> downloadState = Running(job = job, taskId = id) }
     }
