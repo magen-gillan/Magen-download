@@ -136,63 +136,77 @@ class App : Application() {
         lateinit var connectivityManager: ConnectivityManager
         lateinit var packageInfo: PackageInfo
 
-        var isServiceRunning = false
+        @Volatile var isServiceRunning = false
+        private var isServiceBound = false
 
         private val connection =
             object : ServiceConnection {
-                override fun onServiceConnected(className: ComponentName, service: IBinder) {
-                    val binder = service as DownloadService.DownloadServiceBinder
-                    isServiceRunning = true
-                }
+                override fun onServiceConnected(className: ComponentName, service: IBinder) {}
 
                 override fun onServiceDisconnected(arg0: ComponentName) {}
             }
 
         @Synchronized
         fun startService() {
+            // A new start request cancels a stop that was still waiting for the
+            // service to reach the foreground.
+            DownloadService.pendingStop = false
             if (isServiceRunning) return
-            isServiceRunning = true
-            Intent(context.applicationContext, DownloadService::class.java).also { intent ->
-                // startService keeps the foreground service alive even when the
-                // binder connection drops transiently (activity recreation,
-                // config change). With the old bind-only lifecycle the FGS and
-                // its notification were torn down mid-download on unbind.
+            val appContext = context.applicationContext
+            val intent = Intent(appContext, DownloadService::class.java)
+
+            // startService keeps the foreground service alive even when the
+            // binder connection drops transiently (activity recreation, config
+            // change).
+            val started =
                 runCatching {
-                    if (Build.VERSION.SDK_INT >= 26) {
-                        context.applicationContext.startForegroundService(intent)
-                    } else {
-                        context.applicationContext.startService(intent)
+                        if (Build.VERSION.SDK_INT >= 26) {
+                            appContext.startForegroundService(intent)
+                        } else {
+                            appContext.startService(intent)
+                        }
                     }
-                }
                     .onFailure {
-                        // Background FGS start restrictions (Android 12+):
-                        // fall back to the binding only — downloads still run
+                        // Background FGS start restrictions (Android 12+): fall
+                        // back to the binding only - downloads still run
                         // in-process, we just lose the foreground priority.
                         it.printStackTrace()
                     }
+                    .isSuccess
+
+            isServiceBound =
                 runCatching {
-                    context.applicationContext.bindService(
-                        intent,
-                        connection,
-                        Context.BIND_AUTO_CREATE,
-                    )
-                }.onFailure { it.printStackTrace() }
-            }
+                        appContext.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                    }
+                    .onFailure { it.printStackTrace() }
+                    .getOrDefault(false)
+
+            // Only remember the service as running when something really started,
+            // so that a later call can retry after a failed start.
+            isServiceRunning = started || isServiceBound
         }
 
         @Synchronized
         fun stopService() {
             if (!isServiceRunning) return
             isServiceRunning = false
-            try {
-                context.applicationContext.run {
-                    unbindService(connection)
-                    // Stop the (possibly startService-started) foreground
-                    // service as well — the queue drained, nothing is running.
-                    stopService(Intent(this, DownloadService::class.java))
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+            val appContext = context.applicationContext
+            if (isServiceBound) {
+                isServiceBound = false
+                runCatching { appContext.unbindService(connection) }
+                    .onFailure { it.printStackTrace() }
+            }
+
+            // Stopping a service that was started with startForegroundService()
+            // before it called startForeground() kills the app with
+            // ForegroundServiceDidNotStartInTimeException. If the service has not
+            // reached the foreground yet, let it stop itself once it has.
+            DownloadService.pendingStop = true
+            if (DownloadService.isForegroundStarted) {
+                // It made it to the foreground in the meantime: safe to stop now.
+                DownloadService.pendingStop = false
+                runCatching { appContext.stopService(Intent(appContext, DownloadService::class.java)) }
+                    .onFailure { it.printStackTrace() }
             }
         }
 

@@ -32,14 +32,18 @@ import com.magen.download.util.DownloadUtil
 import com.magen.download.util.PreferenceUtil
 import com.magen.download.util.matchUrlFromSharedText
 import com.magen.download.util.setLanguage
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import com.magen.download.download.DownloaderV2
+import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.getViewModel
 
 private const val TAG = "QuickDownloadActivity"
 
 class QuickDownloadActivity : ComponentActivity() {
     private var sharedUrlCached: String = ""
+    private val downloaderV2: DownloaderV2 by inject()
 
     private fun Intent.getSharedURL(): String? {
         val intent = this
@@ -162,4 +166,25 @@ class QuickDownloadActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (!isFinishing) return
+        // The service is started early (while this activity is visible, which is
+        // what Android requires for a foreground-service start). If the user closed
+        // the sheet without downloading anything, stop it again instead of leaving a
+        // "downloading..." notification behind. The short delay lets a task that was
+        // just enqueued move to its running state first.
+        val downloader = downloaderV2
+        App.applicationScope.launch {
+            delay(IDLE_CHECK_DELAY_MS)
+            val busy =
+                downloader.countBusyTasks() > 0 ||
+                    Downloader.processCount.value > 0 ||
+                    Downloader.downloaderState.value !is Downloader.State.Idle
+            if (!busy) App.stopService()
+        }
+    }
 }
+
+private const val IDLE_CHECK_DELAY_MS = 2_500L

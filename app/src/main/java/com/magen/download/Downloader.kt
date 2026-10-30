@@ -165,6 +165,8 @@ object Downloader {
     val errorState = mutableErrorState.asStateFlow()
     val processCount = mutableProcessCount.asStateFlow()
 
+    private var serviceRequested = false
+
     init {
         applicationScope.launch {
             downloaderState
@@ -179,7 +181,17 @@ object Downloader {
                 .combine(mutableQuickDownloadCount) { isRunning, cnt ->
                     if (!isRunning) cnt > 0 else true
                 }
-                .collect { if (it) startService() else stopService() }
+                .collect { running ->
+                    // Ignore the initial "idle" value: it must not stop a service that
+                    // was started meanwhile (see DownloaderV2Impl for the details).
+                    if (running) {
+                        serviceRequested = true
+                        startService()
+                    } else if (serviceRequested) {
+                        serviceRequested = false
+                        stopService()
+                    }
+                }
         }
     }
 

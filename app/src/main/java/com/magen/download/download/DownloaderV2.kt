@@ -116,6 +116,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val taskStateMap = mutableStateMapOf<Task, Task.State>()
     private val snapshotFlow = snapshotFlow { taskStateMap.toMap() }
+    private var serviceRequested = false
 
     init {
         scope.launch(Dispatchers.Default) {
@@ -129,9 +130,21 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         Log.e(TAG, "download scheduler failed", throwable)
                     }
                 }
-                .map { it.countRunning() }
+                .map { it.countRunning() > 0 }
                 .distinctUntilChanged()
-                .collect { if (it > 0) App.startService() else App.stopService() }
+                .collect { running ->
+                    // Only stop on a real running -> idle transition. The very first
+                    // emission is always "idle"; reacting to it used to stop a service
+                    // that had just been started (e.g. by the share-sheet activity)
+                    // before it reached startForeground(), which crashed the app.
+                    if (running) {
+                        serviceRequested = true
+                        App.startService()
+                    } else if (serviceRequested) {
+                        serviceRequested = false
+                        App.stopService()
+                    }
+                }
         }
 
         scope.launch(Dispatchers.IO) {
