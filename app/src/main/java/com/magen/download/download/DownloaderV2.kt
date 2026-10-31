@@ -26,6 +26,8 @@ import com.magen.download.util.PreferenceUtil
 import com.magen.download.util.VideoInfo
 import com.magen.download.util.toStableNotificationId
 import com.yausername.youtubedl_android.YoutubeDL
+import com.yausername.youtubedl_android.YoutubeDLException
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -53,6 +55,30 @@ private const val MAX_CONCURRENCY = 3
 private const val FETCH_INFO_ATTEMPTS = 3
 private const val DOWNLOAD_ATTEMPTS = 2
 private const val RETRY_BASE_DELAY_MS = 2000L
+
+// Stall watchdog: a yt-dlp process that hangs (dead socket that never errors,
+// a merger gone zombie, a connection crawling at a few KB/s) would keep the
+// task in "Running" forever. The watchdog kills it so the retry loop or an
+// error takes over.
+private const val WATCHDOG_TICK_MS = 30_000L
+private const val FETCH_STALL_TIMEOUT_MS = 3 * 60_000L
+private const val LINE_STALL_TIMEOUT_MS = 5 * 60_000L
+private const val POSTPROC_LINE_STALL_TIMEOUT_MS = 20 * 60_000L
+private const val PROGRESS_STALL_TIMEOUT_MS = 15 * 60_000L
+
+// yt-dlp post-processing lines ([Merger], [ExtractAudio], ...) are printed once
+// and then stay silent for the whole (legitimately slow) operation.
+private val POSTPROCESSING_PREFIXES =
+    listOf(
+        "[Merger]",
+        "[ExtractAudio]",
+        "[VideoConvertor]",
+        "[VideoRemuxer]",
+        "[EmbedThumbnail]",
+        "[Metadata]",
+        "[Fixup]",
+        "[ThumbnailsConvertor]",
+    )
 
 interface DownloaderV2 {
     fun getTaskStateMap(): SnapshotStateMap<Task, Task.State>
@@ -118,6 +144,12 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private val snapshotFlow = snapshotFlow { taskStateMap.toMap() }
     private var serviceRequested = false
 
+    // Stall-watchdog bookkeeping (task id -> epoch millis / marker).
+    private val lastLineAt = ConcurrentHashMap<String, Long>()
+    private val lastProgressAt = ConcurrentHashMap<String, Long>()
+    private val lastProgressValue = ConcurrentHashMap<String, Float>()
+    private val watchdogKilled = ConcurrentHashMap<String, Boolean>()
+
     init {
         scope.launch(Dispatchers.Default) {
             snapshotFlow
@@ -145,6 +177,47 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         App.stopService()
                     }
                 }
+        }
+
+        // Stall watchdog: kill yt-dlp processes that stopped producing output
+        // or progress (dead socket that never errors, a merger gone zombie, a
+        // throttled connection crawling at a few KB/s) so the retry loop or an
+        // error takes over instead of leaving the task "downloading" forever.
+        scope.launch(Dispatchers.Default) {
+            while (true) {
+                delay(WATCHDOG_TICK_MS)
+                val now = System.currentTimeMillis()
+                val states = taskStateMap.toMap()
+                for ((taskId, lastLine) in lastLineAt) {
+                    val state =
+                        states.entries.firstOrNull { it.key.id == taskId }?.value?.downloadState
+                    when (state) {
+                        is FetchingInfo -> {
+                            if (now - lastLine > FETCH_STALL_TIMEOUT_MS) {
+                                killStalledProcess(taskId, "info fetch stalled")
+                            }
+                        }
+                        is Running -> {
+                            val inPostProcessing =
+                                POSTPROCESSING_PREFIXES.any { state.progressText.startsWith(it) }
+                            val lineTimeout =
+                                if (inPostProcessing) POSTPROC_LINE_STALL_TIMEOUT_MS
+                                else LINE_STALL_TIMEOUT_MS
+                            val noProgress =
+                                !inPostProcessing &&
+                                    now - (lastProgressAt[taskId] ?: lastLine) >
+                                        PROGRESS_STALL_TIMEOUT_MS
+                            if (now - lastLine > lineTimeout || noProgress) {
+                                killStalledProcess(
+                                    taskId,
+                                    if (noProgress) "no progress" else "no output",
+                                )
+                            }
+                        }
+                        else -> {}
+                    }
+                }
+            }
         }
 
         scope.launch(Dispatchers.IO) {
@@ -308,6 +381,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             // Default pool: on low-core devices saturated Default threads starve
             // the scheduler collector and progress freezes.
             .launch(Dispatchers.IO) {
+                lastLineAt[id] = System.currentTimeMillis()
                 // Transient network/extractor failures (socket timeout, 5xx,
                 // throttled first request) used to surface as an error even
                 // though an immediate manual retry succeeded. Retry here with
@@ -316,6 +390,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 var lastError: Throwable? = null
                 repeat(FETCH_INFO_ATTEMPTS) { attempt ->
                     if (downloadState !is FetchingInfo) return@launch
+                    watchdogKilled.remove(id)
                     if (attempt > 0) {
                         Log.w(TAG, "fetchInfo retry #$attempt for $url")
                         delay(RETRY_BASE_DELAY_MS * attempt)
@@ -328,12 +403,14 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                             taskKey = id,
                         )
                         .onSuccess {
+                            lastLineAt.remove(id)
                             info = it
                             downloadState = ReadyWithInfo
                             viewState = Task.ViewState.fromVideoInfo(it)
                         }
                         .onFailure { throwable ->
-                            if (throwable is YoutubeDL.CanceledException) {
+                            val killedByWatchdog = watchdogKilled.remove(id) == true
+                            if (throwable is YoutubeDL.CanceledException && !killedByWatchdog) {
                                 return@onFailure
                             }
                             Log.w(
@@ -345,16 +422,17 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         }
                     if (downloadState == ReadyWithInfo) return@launch
                 }
-                lastError?.let { throwable ->
-                    if (downloadState !is FetchingInfo) return@launch
-                    task.downloadState = Error(throwable = throwable, action = FetchInfo)
-                    NotificationUtil.notifyError(
-                        title = viewState.title,
-                        textId = R.string.fetch_info_error_msg,
-                        notificationId = notificationId,
-                        report = throwable.stackTraceToString(),
-                    )
-                }
+                val fetchError =
+                    lastError
+                        ?: YoutubeDLException(appContext.getString(R.string.stalled_download_error))
+                if (downloadState !is FetchingInfo) return@launch
+                task.downloadState = Error(throwable = fetchError, action = FetchInfo)
+                NotificationUtil.notifyError(
+                    title = viewState.title,
+                    textId = R.string.fetch_info_error_msg,
+                    notificationId = notificationId,
+                    report = fetchError.stackTraceToString(),
+                )
             }
             .also { job -> downloadState = FetchingInfo(job = job, taskId = id) }
     }
@@ -382,11 +460,16 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 // every output line (download ticks, merger, post-processing),
                 // so refresh the notification at most twice per second.
                 var lastNotifyTime = 0L
+                val startedAt = System.currentTimeMillis()
+                lastLineAt[id] = startedAt
+                lastProgressAt[id] = startedAt
+                lastProgressValue.remove(id)
                 // One app-level retry for transient whole-process failures;
                 // yt-dlp resumes from the .part file so nothing is lost.
                 var lastError: Throwable? = null
                 repeat(DOWNLOAD_ATTEMPTS) { attempt ->
                     if (downloadState !is Running) return@launch
+                    watchdogKilled.remove(id)
                     if (attempt > 0) {
                         Log.w(TAG, "download retry #$attempt (resuming .part) for $url")
                         delay(RETRY_BASE_DELAY_MS * 2)
@@ -397,6 +480,14 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                             taskId = id,
                             downloadPreferences = preferences,
                             progressCallback = { progressPercentage, _, text ->
+                                lastLineAt[id] = System.currentTimeMillis()
+                                if (progressPercentage >= 0f) {
+                                    val previous = lastProgressValue[id]
+                                    if (previous == null || progressPercentage > previous) {
+                                        lastProgressValue[id] = progressPercentage
+                                        lastProgressAt[id] = System.currentTimeMillis()
+                                    }
+                                }
                                 when (val preState = downloadState) {
                                     is Running -> {
                                         // Lines that don't report progress (e.g.
@@ -432,6 +523,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                             },
                         )
                         .onSuccess { pathList ->
+                            lastLineAt.remove(id)
+                            lastProgressAt.remove(id)
+                            lastProgressValue.remove(id)
                             downloadState = Completed(pathList.firstOrNull())
 
                             val text =
@@ -457,30 +551,47 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                             }
                         }
                         .onFailure { throwable ->
-                            if (throwable is YoutubeDL.CanceledException) {
+                            val killedByWatchdog = watchdogKilled.remove(id) == true
+                            if (throwable is YoutubeDL.CanceledException && !killedByWatchdog) {
                                 return@onFailure
                             }
+                            val error =
+                                if (killedByWatchdog)
+                                    YoutubeDLException(
+                                        appContext.getString(R.string.stalled_download_error)
+                                    )
+                                else throwable
                             Log.w(
                                 TAG,
                                 "download attempt ${attempt + 1}/$DOWNLOAD_ATTEMPTS failed",
-                                throwable,
+                                error,
                             )
-                            lastError = throwable
+                            lastError = error
                         }
                     if (downloadState is Completed) return@launch
                 }
-                lastError?.let { throwable ->
-                    if (downloadState !is Running) return@launch
-                    downloadState = Error(throwable = throwable, action = Download)
-                    NotificationUtil.notifyError(
-                        title = viewState.title,
-                        textId = R.string.download_error_msg,
-                        notificationId = notificationId,
-                        report = throwable.stackTraceToString(),
-                    )
-                }
+                val downloadError =
+                    lastError
+                        ?: YoutubeDLException(appContext.getString(R.string.stalled_download_error))
+                if (downloadState !is Running) return@launch
+                downloadState = Error(throwable = downloadError, action = Download)
+                NotificationUtil.notifyError(
+                    title = viewState.title,
+                    textId = R.string.download_error_msg,
+                    notificationId = notificationId,
+                    report = downloadError.stackTraceToString(),
+                )
             }
             .also { job -> downloadState = Running(job = job, taskId = id) }
+    }
+
+    private fun killStalledProcess(taskId: String, reason: String) {
+        Log.w(TAG, "watchdog: destroying stalled process $taskId ($reason)")
+        watchdogKilled[taskId] = true
+        lastLineAt.remove(taskId)
+        lastProgressAt.remove(taskId)
+        runCatching { YoutubeDL.destroyProcessById(taskId) }
+            .onFailure { Log.w(TAG, "watchdog: destroy failed for $taskId", it) }
     }
 
     private fun Task.cancelImpl(): Boolean {

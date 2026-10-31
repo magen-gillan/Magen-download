@@ -17,6 +17,8 @@
     <string name="download_error_msg">Could not download file</string>
     <string name="download_start_msg">Download \"%1$s\"</string>
     <string name="fetch_info_error_msg">Could not fetch video info</string>
+    <string name="live_stream_error">Live and upcoming streams cannot be downloaded</string>
+    <string name="stalled_download_error">Download stalled: the connection was too slow or stopped responding</string>
     <string name="general_settings">General</string>
     <string name="language">Display language</string>
     <string name="language_settings">Set display language</string>
@@ -180,8 +182,6 @@
     <string name="export_failed">Could not export the file</string>
     <string name="app_update_failed">Failed to update to the latest version</string>
     <string name="update">Update</string>
-    <string name="aria2" translatable="false">Aria2</string>
-    <string name="aria2_desc">Use aria2c as the external downloader</string>
     <string name="cookies">Cookies</string>
     <string name="cookies_desc">Use Netscape formatted cookies for downloads</string>
     <string name="cookies_file_name" translatable="false">cookies.txt</string>

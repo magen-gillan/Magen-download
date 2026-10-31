@@ -3,7 +3,6 @@ package com.magen.download.ui.page.settings.network
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Bolt
 import androidx.compose.material.icons.outlined.Cookie
 import androidx.compose.material.icons.outlined.OfflineBolt
 import androidx.compose.material.icons.outlined.SettingsEthernet
@@ -33,7 +32,6 @@ import com.magen.download.ui.component.PreferenceItem
 import com.magen.download.ui.component.PreferenceSubtitle
 import com.magen.download.ui.component.PreferenceSwitch
 import com.magen.download.ui.component.PreferenceSwitchWithDivider
-import com.magen.download.util.ARIA2C
 import com.magen.download.util.CELLULAR_DOWNLOAD
 import com.magen.download.util.COOKIES
 import com.magen.download.util.CUSTOM_COMMAND
@@ -56,7 +54,6 @@ fun NetworkPreferences(navigateToCookieProfilePage: () -> Unit = {}, onNavigateB
     var showConcurrentDownloadDialog by remember { mutableStateOf(false) }
     var showRateLimitDialog by remember { mutableStateOf(false) }
     var showProxyDialog by remember { mutableStateOf(false) }
-    var aria2c by remember { mutableStateOf(ARIA2C.getBoolean()) }
     var proxy by PROXY.booleanState
     var isCookiesEnabled by COOKIES.booleanState
     var forceIpv4 by FORCE_IPV4.booleanState
@@ -118,18 +115,6 @@ fun NetworkPreferences(navigateToCookieProfilePage: () -> Unit = {}, onNavigateB
                 item { PreferenceSubtitle(text = stringResource(id = R.string.advanced_settings)) }
 
                 item {
-                    PreferenceSwitch(
-                        title = stringResource(R.string.aria2),
-                        icon = Icons.Outlined.Bolt,
-                        description = stringResource(R.string.aria2_desc),
-                        isChecked = aria2c,
-                        onClick = {
-                            aria2c = !aria2c
-                            updateValue(ARIA2C, aria2c)
-                        },
-                    )
-                }
-                item {
                     PreferenceSwitchWithDivider(
                         title = stringResource(id = R.string.proxy),
                         description = stringResource(id = R.string.proxy_desc),
@@ -148,7 +133,7 @@ fun NetworkPreferences(navigateToCookieProfilePage: () -> Unit = {}, onNavigateB
                         title = stringResource(id = R.string.concurrent_download),
                         description = stringResource(R.string.concurrent_download_desc),
                         icon = Icons.Outlined.OfflineBolt,
-                        enabled = !aria2c && !isCustomCommandEnabled,
+                        enabled = !isCustomCommandEnabled,
                     ) {
                         showConcurrentDownloadDialog = true
                     }

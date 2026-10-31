@@ -85,6 +85,8 @@
     <string name="permission_denied">تم رفض الإذن</string>
     <string name="download_error_msg">تعذر تحميل الملف</string>
     <string name="fetch_info_error_msg">فشل جلب معلومات الفيديو</string>
+    <string name="live_stream_error">لا يمكن تحميل البث المباشر أو القادم</string>
+    <string name="stalled_download_error">توقف التحميل: كان الاتصال بطيئًا جدًا أو توقف عن الاستجابة</string>
     <string name="language_settings">تعيين لغة العرض</string>
     <string name="task_running">هناك مهمة تنزيل جارية بالفعل</string>
     <string name="ytdlp_update">انقر هنا لتثبيت آخر إصدار من yt-dlp</string>
@@ -174,7 +176,6 @@
     <string name="update">تحديث</string>
     <string name="check_for_updates">البحث عن تحديثات</string>
     <string name="check_for_updates_desc">تحقق تلقائياً من أحدث إصدار متوفر على GitHub</string>
-    <string name="aria2_desc">استخدم aria2c كمدير تنزيل خارجي</string>
     <string name="cookies_desc">استخدم ملفات تعريف الارتباط بتنسيق Netscape للتنزيلات</string>
     <string name="clear_temp_files">امسح الملفات المؤقتة</string>
     <string name="clear_temp_files_count">تم حذف %1$d ملف(ات) مؤقت(ة)</string>

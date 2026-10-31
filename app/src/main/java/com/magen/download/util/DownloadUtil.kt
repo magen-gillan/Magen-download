@@ -185,7 +185,19 @@ object DownloadUtil {
                     addOption("--no-playlist")
                     addOption("--socket-timeout", "20")
                 }
-            return getVideoInfo(request, taskKey)
+            val result = getVideoInfo(request, taskKey)
+            // A live stream would be recorded in real time and never finish, and
+            // an upcoming one waits for the stream to go live (potentially for
+            // hours) — fail fast with a clear error instead of "downloading"
+            // forever.
+            result.onSuccess { info ->
+                if (info.liveStatus == "is_live" || info.liveStatus == "is_upcoming") {
+                    return Result.failure(
+                        YoutubeDLException(context.getString(R.string.live_stream_error))
+                    )
+                }
+            }
+            return result
         }
     }
 
@@ -208,7 +220,6 @@ object DownloadUtil {
         val sponsorBlock: Boolean,
         val sponsorBlockCategory: String,
         val cookies: Boolean,
-        val aria2c: Boolean,
         val useCustomAudioPreset: Boolean,
         val audioFormat: Int,
         val audioQuality: Int,
@@ -263,7 +274,6 @@ object DownloadUtil {
                     sponsorBlock = false,
                     sponsorBlockCategory = "",
                     cookies = false,
-                    aria2c = false,
                     audioFormat = 0,
                     audioQuality = 0,
                     convertAudio = false,
@@ -320,7 +330,6 @@ object DownloadUtil {
                     sponsorBlock = SPONSORBLOCK.getBoolean(),
                     sponsorBlockCategory = PreferenceUtil.getSponsorBlockCategories(),
                     cookies = COOKIES.getBoolean(),
-                    aria2c = ARIA2C.getBoolean(),
                     useCustomAudioPreset = USE_CUSTOM_AUDIO_PRESET.getBoolean(),
                     audioFormat = AUDIO_FORMAT.getInt(),
                     audioQuality = AUDIO_QUALITY.getInt(),
@@ -435,9 +444,6 @@ object DownloadUtil {
 
     fun getCookiesContentFromDatabase(): Result<String> =
         getCookieListFromDatabase().mapCatching { it.toCookiesFileContent() }
-
-    private fun YoutubeDLRequest.enableAria2c(): YoutubeDLRequest =
-        this.addOption("--downloader", "libaria2c.so")
 
     private fun YoutubeDLRequest.addOptionsForVideoDownloads(
         downloadPreferences: DownloadPreferences
@@ -697,6 +703,12 @@ object DownloadUtil {
                     addOption("--socket-timeout", "20")
                     addOption("--retries", "15")
                     addOption("--fragment-retries", "15")
+                    // YouTube throttles individual connections to a crawl (a few
+                    // KB/s): a 7 MB video can then grind for an hour with the
+                    // task stuck on "downloading". Abort and re-extract the data
+                    // connection whenever the rate drops below ~100 KB/s; the
+                    // retry resumes from the .part file.
+                    addOption("--throttled-rate", "100K")
                     //                addOption("-v")
                     if (cookies) {
                         enableCookies(userAgentString)
@@ -752,9 +764,7 @@ object DownloadUtil {
                         addOption("--no-playlist")
                     }
 
-                    if (aria2c) {
-                        enableAria2c()
-                    } else if (concurrentFragments > 1) {
+                    if (concurrentFragments > 1) {
                         addOption("--concurrent-fragments", concurrentFragments)
                     }
 
@@ -911,9 +921,6 @@ object DownloadUtil {
                 YoutubeDLRequest(urlList).apply {
                     commandDirectory.takeIf { it.isNotEmpty() }?.let { addOption("-P", it) }
                     addOption("--newline")
-                    if (aria2c) {
-                        enableAria2c()
-                    }
                     if (useDownloadArchive) {
                         useDownloadArchive()
                     }
@@ -952,9 +959,6 @@ object DownloadUtil {
                 YoutubeDLRequest(urlList).apply {
                     commandDirectory.takeIf { it.isNotEmpty() }?.let { addOption("-P", it) }
                     addOption("--newline")
-                    if (aria2c) {
-                        enableAria2c()
-                    }
                     if (useDownloadArchive) {
                         useDownloadArchive()
                     }

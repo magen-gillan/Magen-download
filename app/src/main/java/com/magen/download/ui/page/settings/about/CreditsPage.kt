@@ -52,7 +52,6 @@ private const val mmkv = "https://github.com/Tencent/MMKV"
 private const val kotlin = "https://kotlinlang.org/"
 private const val okhttp = "https://github.com/square/okhttp"
 private const val accompanist = "https://github.com/google/accompanist"
-private const val aria2 = "https://github.com/aria2/aria2"
 private const val material3 = "https://m3.material.io/"
 private const val unDraw = "https://undraw.co/"
 private const val materialMotionCompose = "https://github.com/fornewid/material-motion-compose"
@@ -85,7 +84,6 @@ fun CreditsPage(onNavigateBack: () -> Unit) {
             Credit("Material color utilities", APACHE_V2, materialColor),
             Credit("MMKV", BSD, mmkv),
             Credit("Coil", APACHE_V2, coil),
-            Credit("aria2", GPL_V2, aria2),
             Credit("OkHttp", APACHE_V2, okhttp),
             Credit("material-motion-compose", APACHE_V2, materialMotionCompose),
             Credit("unDraw", null, unDraw),
