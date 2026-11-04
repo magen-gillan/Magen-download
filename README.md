@@ -8,6 +8,8 @@
 
 تطبيق تحميل الفيديو والصوت لأندرويد، بواجهة عربية/إنجليزية كاملة ووضعين للاستخدام: **بسيط** و**متقدم**.
 
+**EN:** Magen Download is an Android video/audio downloader built on yt-dlp (a fork of Seal), with a full Arabic/English interface and two usage modes: **Simple** and **Advanced**. It supports downloading from thousands of sites, background downloads, resumable transfers, format conversion, and subtitle embedding.
+
 </div>
 
 ## التحميل | Download
@@ -15,6 +17,8 @@
 حمّل أحدث إصدار جاهز للتثبيت مباشرة من صفحة الإصدارات:
 
 > **[Download latest APK — تحميل أحدث نسخة](https://github.com/magen-gillan/Magen-download/releases/latest)**
+
+**أحدث إصدار حالياً | Current release: [v2.2.5](https://github.com/magen-gillan/Magen-download/releases/tag/v2.2.5)** — تحميل مباشر: [Magen-download-2.2.5-arm64.apk](https://github.com/magen-gillan/Magen-download/releases/download/v2.2.5/Magen-download-2.2.5-arm64.apk)
 
 - المعمارية المدعومة: **arm64-v8a** (مناسبة لجميع الهواتف الحديثة مثل Honor X6c وأشباهها).
 - الواجهة: العربية والإنجليزية (تُطبَّق لغة النظام تلقائيًا عند أول تشغيل).
@@ -77,7 +81,7 @@
 ./gradlew :app:assembleGenericRelease -PnoSplits "-PABI_FILTERS=arm64-v8a"
 ```
 
-سيُنتج البناء ملف `Magen-download-2.2.2-generic-release.apk` في
+سيُنتج البناء ملف `Magen-download-<version>-generic-release.apk` (حسب رقم الإصدار) في
 `app/build/outputs/apk/generic/release/`.
 
 ## الترخيص والاعتمادات | License & Credits
