@@ -356,14 +356,13 @@ object PreferenceUtil {
         get() = find { it.id == TEMPLATE_ID.getInt() }
 
     fun getTemplate(): CommandTemplate {
-        var template: CommandTemplate? = null
-        runBlocking {
-            for (cnt in 1..5) {
-                template = templateListStateFlow.value.selectedTemplate
-                if (template != null) return@runBlocking
-                delay(100)
-            }
-        }
+        // Fast path: a single direct DB lookup. Polling the (initially empty)
+        // state flow with 5x100ms delays used to block the main thread for up
+        // to half a second while the download sheet composed on a cold start.
+        val templateId = TEMPLATE_ID.getInt()
+        val template =
+            runBlocking { DatabaseUtil.getTemplateList() }.find { it.id == templateId }
+                ?: templateListStateFlow.value.selectedTemplate
         // Never throw: this is called synchronously during composition of the
         // download sheet; a stale/missing template id (or an empty table mid
         // operation) crashed the app instead of falling back to the example.

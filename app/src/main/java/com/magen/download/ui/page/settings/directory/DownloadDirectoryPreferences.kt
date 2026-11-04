@@ -204,23 +204,24 @@ fun DownloadDirectoryPreferences(onNavigateBack: () -> Unit) {
                 // the path and returns it, so the UI shows exactly what was
                 // persisted (the old code re-resolved the URI independently).
                 val resolvedPath = App.updateDownloadDir(uri, editingDirectory)
-                if (editingDirectory != Directory.SDCARD) {
-                    when (editingDirectory) {
-                        Directory.AUDIO -> {
-                            audioDirectoryText = resolvedPath
-                        }
+                when (editingDirectory) {
+                    Directory.AUDIO -> {
+                        audioDirectoryText = resolvedPath
+                    }
 
-                        Directory.VIDEO -> {
-                            videoDirectoryText = resolvedPath
-                        }
+                    Directory.VIDEO -> {
+                        videoDirectoryText = resolvedPath
+                    }
 
-                        Directory.SDCARD -> {
-                            sdcardUri = uri.toString()
-                        }
+                    Directory.SDCARD -> {
+                        // Refresh the local state too: leaving sdcardUri stale
+                        // made the enable-toggle re-open the folder picker on
+                        // every tap until the screen was left and re-entered.
+                        sdcardUri = uri.toString()
+                    }
 
-                        Directory.CUSTOM_COMMAND -> {
-                            customCommandDirectory = resolvedPath
-                        }
+                    Directory.CUSTOM_COMMAND -> {
+                        customCommandDirectory = resolvedPath
                     }
                 }
             }

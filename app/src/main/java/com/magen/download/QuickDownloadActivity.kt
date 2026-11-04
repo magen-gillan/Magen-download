@@ -50,12 +50,18 @@ class QuickDownloadActivity : ComponentActivity() {
 
         return when (intent.action) {
             Intent.ACTION_VIEW -> {
-                intent.dataString
+                // Normalize like MainActivity does: a browser "open with" URL
+                // can carry tracking/query garbage around the media link.
+                intent.dataString?.let { matchUrlFromSharedText(it) }
             }
 
             Intent.ACTION_SEND -> {
+                // Do NOT removeExtra: this intent is re-delivered verbatim when
+                // the activity is recreated (rotation, dark-mode change,
+                // split-screen resize). Removing it used to make the recreated
+                // instance see no URL and finish() mid-configuration, killing
+                // the share flow. sharedUrlCached survives recreation anyway.
                 intent.getStringExtra(Intent.EXTRA_TEXT)?.let { sharedContent ->
-                    intent.removeExtra(Intent.EXTRA_TEXT)
                     matchUrlFromSharedText(sharedContent)
                 }
             }
@@ -164,6 +170,21 @@ class QuickDownloadActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // singleInstance re-delivers a second share here; ignoring it used to
+        // silently drop the new link while the stale sheet kept showing the
+        // old URL.
+        intent.getSharedURL()?.let { sharedUrlCached = it }
+        if (sharedUrlCached.isNotEmpty()) {
+            App.startService()
+            getViewModel<DownloadDialogViewModel>().postAction(
+                Action.ShowSheet(listOf(sharedUrlCached))
+            )
         }
     }
 

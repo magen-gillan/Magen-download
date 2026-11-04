@@ -803,7 +803,10 @@ fun ConfigurePagePlaylistVariant(
             useFormatSelection = false,
             onCancel = onDismissRequest,
             onDownload = {
-                onDownload(initialDownloadType)
+                // Use the type the user selected in this sheet, not the initial
+                // one: picking "Audio" here used to be silently ignored and a
+                // full video download was enqueued instead.
+                onDownload(selectedType)
                 onDismissRequest()
             },
             onFetchInfo = { throw IllegalStateException() },

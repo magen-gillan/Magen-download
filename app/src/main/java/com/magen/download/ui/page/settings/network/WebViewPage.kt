@@ -68,11 +68,6 @@ private fun String.toDomain(): String {
     return this.replace(domainRegex, "")
 }
 
-private fun makeCookie(url: String, cookieString: String): Cookie {
-    cookieString.split("=").run {
-        return Cookie(url = url, name = first(), value = last())
-    }
-}
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)

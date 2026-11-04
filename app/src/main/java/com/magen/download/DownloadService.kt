@@ -117,6 +117,11 @@ class DownloadService : Service(), KoinComponent {
 
     override fun onDestroy() {
         isForegroundStarted = false
+        // The system can kill the service independently of App.stopService()
+        // (memory pressure, app swipe). Without this reset the stale
+        // isServiceRunning flag made the next App.startService() return early
+        // and downloads then ran without any foreground service at all.
+        App.isServiceRunning = false
         super.onDestroy()
     }
 

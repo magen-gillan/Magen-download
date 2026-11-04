@@ -19,8 +19,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -29,7 +27,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.magen.download.R
-import com.magen.download.ui.component.CheckBoxItem
 import com.magen.download.util.PreferenceUtil
 import com.magen.download.util.PreferenceUtil.getInt
 import com.magen.download.util.WELCOME_DIALOG
@@ -37,9 +34,11 @@ import com.magen.download.util.WELCOME_DIALOG
 @Composable
 fun WelcomeDialog(onClick: () -> Unit) {
     var showWelcomeDialog by rememberSaveable { mutableIntStateOf(WELCOME_DIALOG.getInt()) }
-    var disableDialog by remember { mutableStateOf(false) }
     val onDismissRequest = {
-        PreferenceUtil.encodeInt(WELCOME_DIALOG, if (disableDialog) 0 else showWelcomeDialog + 1)
+        // The user guide is a first-launch helper: dismissing it is permanent.
+        // The old N+1 counter stayed > 0 forever, so the dialog popped up on
+        // every single app start until the hidden 2nd-show checkbox was used.
+        PreferenceUtil.encodeInt(WELCOME_DIALOG, 0)
         showWelcomeDialog = 0
     }
     if (showWelcomeDialog > 0)
@@ -81,12 +80,6 @@ fun WelcomeDialog(onClick: () -> Unit) {
                         icon = Icons.Outlined.SettingsSuggest,
                         description = stringResource(R.string.check_download_settings_desc),
                     )
-                    if ((showWelcomeDialog > 1))
-                        CheckBoxItem(
-                            text = stringResource(id = R.string.close_never_show_again),
-                            checked = disableDialog,
-                            onValueChange = { disableDialog = !disableDialog },
-                        )
                 }
             },
         )

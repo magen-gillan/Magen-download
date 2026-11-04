@@ -884,7 +884,9 @@ private fun SubtitleLanguageDialogImpl(
                         label = stringResource(R.string.yt_dlp_docs),
                         icon = Icons.AutoMirrored.Outlined.OpenInNew,
                     ) {
-                        uriHandler.openUri(sortingFormats)
+                        // This is the subtitle-language dialog: the docs chip
+                        // used to link to the format-sorting docs page.
+                        uriHandler.openUri(subtitleOptions)
                     }
                 }
             }

@@ -563,7 +563,7 @@ private fun ResumeButton(
                 .size(IconButtonSize)
                 .clip(CircleShape)
                 .drawBehind { drawCircle(background) }
-                .clickable(onClickLabel = stringResource(R.string.cancel), onClick = onClick)
+                .clickable(onClickLabel = stringResource(R.string.resume), onClick = onClick)
     ) {
         if (progress != null) {
             CircularProgressIndicator(
@@ -593,7 +593,7 @@ fun RestartButton(modifier: Modifier = Modifier, onClick: () -> Unit) {
                 .size(IconButtonSize)
                 .clip(CircleShape)
                 .drawBehind { drawCircle(background) }
-                .clickable(onClickLabel = stringResource(R.string.cancel), onClick = onClick)
+                .clickable(onClickLabel = stringResource(R.string.restart), onClick = onClick)
     ) {
         Icon(
             imageVector = Icons.Rounded.RestartAlt,

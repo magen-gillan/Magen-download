@@ -19,6 +19,7 @@
     <string name="fetch_info_error_msg">Could not fetch video info</string>
     <string name="live_stream_error">Live and upcoming streams cannot be downloaded</string>
     <string name="stalled_download_error">Download stalled: the connection was too slow or stopped responding</string>
+    <string name="task_not_found">The requested task no longer exists</string>
     <string name="general_settings">General</string>
     <string name="language">Display language</string>
     <string name="language_settings">Set display language</string>
@@ -89,7 +90,6 @@
     <string name="convert_audio">Convert</string>
     <string name="start_download">Download</string>
     <string name="close">Close</string>
-    <string name="close_never_show_again">Don\'t show up again</string>
     <string name="user_guide">User guide</string>
     <string name="open_settings">Open settings</string>
     <string name="paste_desc">Click \"Paste\" to get video link from your clipboard.</string>

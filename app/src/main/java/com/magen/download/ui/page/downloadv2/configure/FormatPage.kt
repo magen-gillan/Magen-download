@@ -385,10 +385,20 @@ private fun FormatPageImpl(
     val isFabExpanded by remember { derivedStateOf { lazyGridState.firstVisibleItemIndex > 0 } }
 
     val selectedSubtitles = remember {
-        mutableStateListOf<String>().apply { addAll(selectedSubtitleCodes) }
+        mutableStateListOf<String>().apply {
+            // Split the merged initial selection: auto-caption codes (e.g.
+            // "en-orig") belong to selectedAutoCaptions, not here — otherwise
+            // they'd end up in --sub-langs without --write-auto-subs and
+            // silently never download.
+            addAll(selectedSubtitleCodes.filter { it !in videoInfo.automaticCaptions.keys })
+        }
     }
 
-    val selectedAutoCaptions = remember { mutableStateListOf<String>() }
+    val selectedAutoCaptions = remember {
+        mutableStateListOf<String>().apply {
+            addAll(selectedSubtitleCodes.filter { it in videoInfo.automaticCaptions.keys })
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -454,7 +464,7 @@ private fun FormatPageImpl(
                     FormatVideoPreview(
                         modifier = Modifier.padding(horizontal = 8.dp),
                         title = videoTitle.ifEmpty { title },
-                        author = uploader ?: channel ?: uploaderId.toString(),
+                        author = uploader ?: channel ?: uploaderId ?: "",
                         thumbnailUrl = thumbnail.toHttpsUrl(),
                         duration = duration.roundToInt(),
                         isClippingVideo = isClippingVideo,
@@ -771,11 +781,18 @@ private fun FormatPageImpl(
             suggestedSubtitles = suggestedSubtitleMap,
             autoCaptions = otherSubtitleMap,
             selectedSubtitles = selectedSubtitles,
+            selectedAutoCaptions = selectedAutoCaptions,
             onDismissRequest = { showSubtitleSelectionDialog = false },
             onConfirm = { subs, autoSubs ->
                 selectedSubtitles.run {
                     clear()
                     addAll(subs)
+                }
+                // Apply the auto-caption result too — dropping it used to make
+                // every checked auto-caption silently disappear.
+                selectedAutoCaptions.run {
+                    clear()
+                    addAll(autoSubs)
                 }
 
                 showSubtitleSelectionDialog = false
@@ -875,6 +892,7 @@ private fun SubtitleSelectionDialog(
     suggestedSubtitles: Map<String, List<SubtitleFormat>>,
     autoCaptions: Map<String, List<SubtitleFormat>>,
     selectedSubtitles: List<String>,
+    selectedAutoCaptions: List<String> = emptyList(),
     onDismissRequest: () -> Unit = {},
     onConfirm: (subs: List<String>, autoSubs: List<String>) -> Unit = { _, _ -> },
 ) {
@@ -882,12 +900,14 @@ private fun SubtitleSelectionDialog(
     val selectedSubtitles = remember {
         mutableStateListOf<String>().apply { addAll(selectedSubtitles) }
     }
-    val selectedAutoCaptions = remember { mutableStateListOf<String>() }
+    val selectedAutoCaptions = remember {
+        mutableStateListOf<String>().apply { addAll(selectedAutoCaptions) }
+    }
 
     val suggestedSubtitlesFiltered =
         suggestedSubtitles.filterWithSearchText(searchText).sortedWithSelection(selectedSubtitles)
     val autoCaptionsFiltered =
-        autoCaptions.filterWithSearchText(searchText).sortedWithSelection(selectedSubtitles)
+        autoCaptions.filterWithSearchText(searchText).sortedWithSelection(selectedAutoCaptions)
 
     MagenDialog(
         containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,

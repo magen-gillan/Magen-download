@@ -80,10 +80,14 @@ internal class TopBarNestedScrollConnection(
                 flingAnimationSpec
             ) {
                 val delta = value - lastValue
-                val newOffset = (offset() + delta).coerceIn(0f, maxOffset)
+                // Capture the offset BEFORE writing: reading offset() after
+                // onOffsetUpdate made consumed always 0, cancelling the settle
+                // animation after a single frame.
+                val previousOffset = offset()
+                val newOffset = (previousOffset + delta).coerceIn(0f, maxOffset)
 
                 onOffsetUpdate(newOffset)
-                val consumed = abs(newOffset - offset())
+                val consumed = abs(newOffset - previousOffset)
                 lastValue = value
                 remainingVelocity = this.velocity
                 // avoid rounding errors and stop if anything is unconsumed

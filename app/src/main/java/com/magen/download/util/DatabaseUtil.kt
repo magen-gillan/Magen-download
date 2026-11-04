@@ -99,21 +99,24 @@ object DatabaseUtil {
             }
             if (types.contains(BackupType.CommandTemplate)) {
                 if (templates != null) {
-                    val templateList = getTemplateList()
+                    // Same logical-key dedupe as the history branch above:
+                    // comparing whole rows (ids included) re-imported identical
+                    // templates as duplicates on cross-device restores.
+                    val existingNames = getTemplateList().map { it.name }.toHashSet()
                     dao.importTemplates(
                         templates
-                            .filterNot { templateList.contains(it) }
+                            .filter { it.name !in existingNames }
                             .map { it.copy(id = 0) }
                             .also { cnt += it.size }
                     )
                 }
             }
             if (types.contains(BackupType.CommandShortcut)) {
-                val shortcutList = getShortcutList()
                 if (shortcuts != null) {
+                    val existingOptions = getShortcutList().map { it.option }.toHashSet()
                     dao.insertAllShortcuts(
                         shortcuts
-                            .filterNot { shortcutList.contains(it) }
+                            .filter { it.option !in existingOptions }
                             .map { it.copy(id = 0) }
                             .also { cnt += it.size }
                     )

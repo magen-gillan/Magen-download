@@ -49,6 +49,15 @@ class MainActivity : AppCompatActivity() {
         // never floats above the mode-selection onboarding.
         val sharedUrl = intent?.getSharedURL()
         if (sharedUrl != null && APP_MODE_SELECTED.getBoolean()) {
+            // Consume the shared payload: the framework re-delivers the same
+            // intent on recreation (rotation/theme change), and an unconsumed
+            // one used to re-open a share sheet the user already dismissed.
+            intent.run {
+                removeExtra(Intent.EXTRA_TEXT)
+                if (action == Intent.ACTION_VIEW) data = null
+                action = Intent.ACTION_MAIN
+                setIntent(this)
+            }
             dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(sharedUrl)))
         }
 
@@ -72,6 +81,12 @@ class MainActivity : AppCompatActivity() {
         consumeShortcutIntent(intent)
         val url = intent.getSharedURL()
         if (url != null) {
+            intent.run {
+                removeExtra(Intent.EXTRA_TEXT)
+                if (action == Intent.ACTION_VIEW) data = null
+                action = Intent.ACTION_MAIN
+                setIntent(this)
+            }
             dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(url)))
         }
     }

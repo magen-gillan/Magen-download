@@ -3,6 +3,7 @@ package com.magen.download.ui.page.command
 import android.util.Log
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -56,7 +58,39 @@ private const val TAG = "TaskLogPage"
 fun TaskLogPage(onNavigateBack: () -> Unit, taskHashCode: Int) {
     Log.d(TAG, "TaskLogPage: $taskHashCode")
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
-    val task = Downloader.mutableTaskList.values.find { it.hashCode() == taskHashCode } ?: return
+    val task = Downloader.mutableTaskList.values.find { it.hashCode() == taskHashCode }
+    if (task == null) {
+        // A stale navigation (task cleared while its log page was open) used
+        // to hit a bare `?: return` and render a blank screen with no top bar
+        // and no way back.
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.logs),
+                            style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp),
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = { onNavigateBack() }) {
+                            Icon(Icons.Outlined.Close, stringResource(R.string.close))
+                        }
+                    },
+                    actions = {},
+                )
+            },
+        ) { padding ->
+            Box(
+                modifier = Modifier.fillMaxSize().padding(padding),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(stringResource(R.string.task_not_found))
+            }
+        }
+        return
+    }
     val clipboardManager = LocalClipboardManager.current
     var expandLog by remember { mutableStateOf(false) }
     Scaffold(

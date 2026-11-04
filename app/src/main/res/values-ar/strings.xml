@@ -87,6 +87,7 @@
     <string name="fetch_info_error_msg">فشل جلب معلومات الفيديو</string>
     <string name="live_stream_error">لا يمكن تحميل البث المباشر أو القادم</string>
     <string name="stalled_download_error">توقف التحميل: كان الاتصال بطيئًا جدًا أو توقف عن الاستجابة</string>
+    <string name="task_not_found">المهمة المطلوبة لم تعد موجودة</string>
     <string name="language_settings">تعيين لغة العرض</string>
     <string name="task_running">هناك مهمة تنزيل جارية بالفعل</string>
     <string name="ytdlp_update">انقر هنا لتثبيت آخر إصدار من yt-dlp</string>
@@ -100,7 +101,6 @@
     <string name="custom_command">الأوامر المخصصة</string>
     <string name="start_execute">بدء تنفيذ الأمر</string>
     <string name="advanced_settings">إعدادات متقدمة</string>
-    <string name="close_never_show_again">لا تظهر مرة أخرى</string>
     <string name="not_convert">غير محول</string>
     <string name="additional_settings">إعدادات إضافية</string>
     <string name="convert_audio_format_desc">إعادة ترميز ملفات الصوت يُخفِّضُ الجودة ويزيد الحجم.</string>

@@ -221,16 +221,22 @@ object UpdateUtil : KoinComponent {
 
             // Match against every supported ABI (device priority order) with a
             // boundary check: a plain contains("x86") also matches "x86_64" and
-            // could download the wrong APK on x86 devices.
+            // could download the wrong APK on x86 devices. Iterate the device's
+            // ABIs OUTER and assets inner: matching assets in release order
+            // used to hand an arm64 APK to an x86_64 device whenever any asset
+            // matched any ABI (SUPPORTED_ABIS lists ARM translation ABIs on
+            // emulators/Chromebooks).
             val targetUrl =
                 release.assets
-                    ?.firstOrNull { asset ->
-                        val assetName = asset.name ?: return@firstOrNull false
-                        abiList.any { abi ->
-                            assetName.contains("$abi.") ||
-                                assetName.contains("$abi-") ||
-                                assetName.endsWith("-$abi") ||
-                                assetName.endsWith("_$abi")
+                    ?.let { assets ->
+                        abiList.firstNotNullOfOrNull { abi ->
+                            assets.firstOrNull { asset ->
+                                val assetName = asset.name ?: return@firstOrNull false
+                                assetName.contains("$abi.") ||
+                                    assetName.contains("$abi-") ||
+                                    assetName.endsWith("-$abi") ||
+                                    assetName.endsWith("_$abi")
+                            }
                         }
                     }
                     ?.browserDownloadUrl ?: return@withContext emptyFlow()

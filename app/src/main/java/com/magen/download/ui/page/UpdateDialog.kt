@@ -78,7 +78,9 @@ fun UpdateDialogImpl(
     downloadStatus: UpdateUtil.DownloadStatus,
 ) {
     AlertDialog(
-        onDismissRequest = {},
+        // Dismissible: back/gesture-out must work like the Dismiss button —
+        // swallowing it trapped the user in the dialog.
+        onDismissRequest = onDismissRequest,
         title = { Text(title) },
         icon = { Icon(Icons.Outlined.NewReleases, null) },
         confirmButton = {
