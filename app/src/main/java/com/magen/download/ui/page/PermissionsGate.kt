@@ -10,6 +10,7 @@ import android.os.Environment
 import android.os.PowerManager
 import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -140,7 +141,7 @@ fun PermissionsGate(
             // Side effect in an effect, not in composition: writing the flag
             // during composition re-wrote it on every recomposition.
             PERMISSIONS_REQUESTED.updateBoolean(true)
-            delay(400)
+            delay(900)
             onDone()
         }
     }
@@ -166,22 +167,47 @@ fun PermissionsGate(
                 }
             }
 
+            Box(
+                modifier = Modifier.fillMaxWidth().height(150.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.alisha_control_room),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
+                )
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.48f)) {}
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.magen_gillan_logo),
+                        contentDescription = stringResource(R.string.app_name),
+                        modifier = Modifier.size(64.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                    Image(
+                        painter = painterResource(if (allGranted) R.drawable.alisha_happy else R.drawable.alisha_sad),
+                        contentDescription = null,
+                        modifier = Modifier.size(88.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
+            }
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Image(
-                    painter = painterResource(R.drawable.magen_gillan_logo),
-                    contentDescription = stringResource(R.string.app_name),
-                    modifier = Modifier.size(64.dp),
-                    contentScale = ContentScale.Fit,
-                )
-                Image(
-                    painter = painterResource(R.drawable.alisha_chibi),
-                    contentDescription = null,
-                    modifier = Modifier.size(72.dp),
-                    contentScale = ContentScale.Fit,
+                Text(if (allGranted) "👋 ✨" else "👋", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = stringResource(if (allGranted) R.string.permission_mood_granted else R.string.permission_mood_denied),
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onSurface,
                 )
             }
 

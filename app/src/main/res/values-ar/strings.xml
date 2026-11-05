@@ -496,4 +496,6 @@
     <string name="permissions_manage_desc">استعراض أذونات التطبيق: الإشعارات، الملفات، البطارية</string>
     <string name="welcome_brand_title">مرحبًا بك في Magen download</string>
     <string name="welcome_brand_description">نزّل الصوت والفيديو من الروابط، وأدر تنزيلاتك وراجع سجلّها.</string>
+    <string name="permission_mood_granted">شكرًا لك! اليشيا سعيدة، وتطبيق التنزيل جاهز.</string>
+    <string name="permission_mood_denied">تبدو اليشيا حزينة قليلًا. يمكنك منح الأذونات المتبقية لاحقًا.</string>
 </resources>

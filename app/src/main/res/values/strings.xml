@@ -491,4 +491,6 @@
     <string name="permissions_manage_desc">Review app permissions: notifications, files, battery</string>
     <string name="welcome_brand_title">Welcome to Magen download</string>
     <string name="welcome_brand_description">Download audio and video from links, manage your downloads, and revisit their history.</string>
+    <string name="permission_mood_granted">Thanks! Alisha is happy—your downloader is ready.</string>
+    <string name="permission_mood_denied">Alisha looks a little sad. You can grant the remaining permissions later.</string>
 </resources>

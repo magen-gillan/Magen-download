@@ -1,6 +1,7 @@
 package com.magen.download.ui.page
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -72,23 +73,34 @@ fun ModeSelectionOverlay(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().widthIn(max = 480.dp),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 480.dp).height(180.dp),
+                contentAlignment = Alignment.Center,
             ) {
                 Image(
-                    painter = painterResource(R.drawable.magen_gillan_logo),
-                    contentDescription = stringResource(R.string.app_name),
-                    modifier = Modifier.size(112.dp),
-                    contentScale = ContentScale.Fit,
-                )
-                Image(
-                    painter = painterResource(R.drawable.alisha_chibi),
+                    painter = painterResource(R.drawable.alisha_control_room),
                     contentDescription = null,
-                    modifier = Modifier.size(112.dp),
-                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop,
                 )
+                Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface.copy(alpha = 0.42f)) {}
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Image(
+                        painter = painterResource(R.drawable.magen_gillan_logo),
+                        contentDescription = stringResource(R.string.app_name),
+                        modifier = Modifier.size(112.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                    Image(
+                        painter = painterResource(R.drawable.alisha_chibi),
+                        contentDescription = null,
+                        modifier = Modifier.size(112.dp),
+                        contentScale = ContentScale.Fit,
+                    )
+                }
             }
             Text(
                 text = stringResource(R.string.welcome_brand_title),
