@@ -489,4 +489,6 @@
     <string name="permissions_all_granted">All permissions granted ✓</string>
     <string name="permissions_manage">Manage permissions</string>
     <string name="permissions_manage_desc">Review app permissions: notifications, files, battery</string>
+    <string name="welcome_brand_title">Welcome to Magen download</string>
+    <string name="welcome_brand_description">Download audio and video from links, manage your downloads, and revisit their history.</string>
 </resources>

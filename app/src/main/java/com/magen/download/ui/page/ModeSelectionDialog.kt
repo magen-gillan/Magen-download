@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,6 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -69,17 +72,42 @@ fun ModeSelectionOverlay(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().widthIn(max = 480.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Image(
+                    painter = painterResource(R.drawable.magen_gillan_logo),
+                    contentDescription = stringResource(R.string.app_name),
+                    modifier = Modifier.size(112.dp),
+                    contentScale = ContentScale.Fit,
+                )
+                Image(
+                    painter = painterResource(R.drawable.alisha_chibi),
+                    contentDescription = null,
+                    modifier = Modifier.size(112.dp),
+                    contentScale = ContentScale.Fit,
+                )
+            }
             Text(
-                text = stringResource(R.string.mode_welcome_title),
+                text = stringResource(R.string.welcome_brand_title),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
             Text(
-                text = stringResource(R.string.mode_welcome_subtitle),
+                text = stringResource(R.string.welcome_brand_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp, bottom = 24.dp),
+                modifier = Modifier.padding(top = 8.dp, bottom = 16.dp),
+            )
+            Text(
+                text = stringResource(R.string.mode_welcome_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 12.dp),
             )
 
             ModeCard(

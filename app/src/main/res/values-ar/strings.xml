@@ -494,4 +494,6 @@
     <string name="permissions_all_granted">تم منح جميع الأذونات ✓</string>
     <string name="permissions_manage">إدارة الأذونات</string>
     <string name="permissions_manage_desc">استعراض أذونات التطبيق: الإشعارات، الملفات، البطارية</string>
+    <string name="welcome_brand_title">مرحبًا بك في Magen download</string>
+    <string name="welcome_brand_description">نزّل الصوت والفيديو من الروابط، وأدر تنزيلاتك وراجع سجلّها.</string>
 </resources>
