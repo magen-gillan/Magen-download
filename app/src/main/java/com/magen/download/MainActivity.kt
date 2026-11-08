@@ -15,6 +15,7 @@ import com.magen.download.ui.common.SettingsProvider
 import com.magen.download.ui.page.AppEntry
 import com.magen.download.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.magen.download.ui.theme.MagenTheme
+import com.magen.download.download.DownloaderV2
 import com.magen.download.util.APP_MODE_SELECTED
 import com.magen.download.util.CLIPBOARD_SUGGESTION
 import com.magen.download.util.PreferenceUtil
@@ -25,11 +26,13 @@ import com.magen.download.util.setLanguage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
+import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.compose.KoinContext
 
 class MainActivity : AppCompatActivity() {
     private val dialogViewModel: DownloadDialogViewModel by viewModel()
+    private val downloaderV2: DownloaderV2 by inject()
 
     @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -93,7 +96,23 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        ensureForegroundServiceForPendingWork()
         checkClipboardForLinks()
+    }
+
+    /**
+     * Safety net for downloads that lost their foreground protection: a task
+     * enqueued from the share sheet used to end up running with no foreground
+     * service when Android 12+ refused the background start, and OEM battery
+     * managers (Honor/Xiaomi) then froze the process mid-download — the task
+     * kept "spinning" until the app was reopened. Starting the service now,
+     * while this activity is in the foreground, is always allowed and restores
+     * the foreground priority for any unfinished (queued or running) task.
+     */
+    private fun ensureForegroundServiceForPendingWork() {
+        runCatching {
+            if (downloaderV2.hasUnfinishedTasks()) App.startService()
+        }.onFailure { it.printStackTrace() }
     }
 
     /**

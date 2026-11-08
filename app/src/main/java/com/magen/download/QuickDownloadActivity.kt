@@ -199,8 +199,17 @@ class QuickDownloadActivity : ComponentActivity() {
         val downloader = downloaderV2
         App.applicationScope.launch {
             delay(IDLE_CHECK_DELAY_MS)
+            // "Busy" must include tasks that are still queued (Idle/ReadyWithInfo),
+            // not only Running/FetchingInfo: a task enqueued right before this
+            // activity finished may take a moment for the scheduler to pick up
+            // (yt-dlp still initializing, all concurrency slots taken, ...).
+            // Stopping the service during that window made the later start
+            // attempt happen from the background, where Android 12+ refuses to
+            // launch a foreground service — the download then ran without
+            // foreground priority and OEM battery managers froze it mid-flight
+            // (the "share from Facebook, it spins forever" bug).
             val busy =
-                downloader.countBusyTasks() > 0 ||
+                downloader.hasUnfinishedTasks() ||
                     Downloader.processCount.value > 0 ||
                     Downloader.downloaderState.value !is Downloader.State.Idle
             if (!busy) App.stopService()

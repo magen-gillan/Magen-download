@@ -90,6 +90,28 @@ interface DownloaderV2 {
                 state.downloadState is Task.DownloadState.FetchingInfo
         }
 
+    /**
+     * True while any task still needs the download machinery: queued (Idle),
+     * fetching info, ready to start, or actively downloading.
+     *
+     * Unlike [countBusyTasks] this also covers queued work. This is what keeps
+     * the foreground service alive across the whole share-to-download flow:
+     * a task freshly enqueued from the share sheet is Idle for a while (the
+     * scheduler picks it up asynchronously, yt-dlp may still be initializing,
+     * or all [MAX_CONCURRENCY] slots may be taken). Stopping the service during
+     * that window means the later start attempt happens from the background,
+     * where Android 12+ refuses to launch a foreground service — downloads
+     * then run unprotected and OEM battery managers (e.g. Honor) freeze them,
+     * leaving the task spinning forever until the app is reopened.
+     */
+    fun hasUnfinishedTasks(): Boolean =
+        getTaskStateMap().values.any { state ->
+            state.downloadState is Task.DownloadState.Idle ||
+                state.downloadState is Task.DownloadState.FetchingInfo ||
+                state.downloadState is Task.DownloadState.ReadyWithInfo ||
+                state.downloadState is Task.DownloadState.Running
+        }
+
     fun cancel(task: Task): Boolean
 
     fun cancel(taskId: String): Boolean {
@@ -114,6 +136,10 @@ interface DownloaderV2 {
 internal object FakeDownloaderV2 : DownloaderV2 {
     override fun getTaskStateMap(): SnapshotStateMap<Task, Task.State> {
         return mutableStateMapOf()
+    }
+
+    override fun hasUnfinishedTasks(): Boolean {
+        return false
     }
 
     override fun cancel(task: Task): Boolean {
@@ -162,14 +188,20 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         Log.e(TAG, "download scheduler failed", throwable)
                     }
                 }
-                .map { it.countRunning() > 0 }
+                .map { it.hasPendingWork() }
                 .distinctUntilChanged()
-                .collect { running ->
-                    // Only stop on a real running -> idle transition. The very first
+                .collect { workPending ->
+                    // Only stop on a real busy -> idle transition. The very first
                     // emission is always "idle"; reacting to it used to stop a service
                     // that had just been started (e.g. by the share-sheet activity)
                     // before it reached startForeground(), which crashed the app.
-                    if (running) {
+                    //
+                    // "Busy" here means ANY unfinished work (queued, fetching info,
+                    // ready, or running) — not just Running/FetchingInfo. Stopping on
+                    // Running-only used to tear the service down while a task was
+                    // still queued, and the later background start attempt was then
+                    // refused by Android 12+ FGS restrictions.
+                    if (workPending) {
                         serviceRequested = true
                         App.startService()
                     } else if (serviceRequested) {
@@ -266,6 +298,14 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         state.downloadState is Running || state.downloadState is FetchingInfo
     }
 
+    /** Queued, fetching, ready, or running — anything that still needs the service. */
+    private fun Map<Task, Task.State>.hasPendingWork(): Boolean = any { (_, state) ->
+        state.downloadState is Idle ||
+            state.downloadState is FetchingInfo ||
+            state.downloadState is ReadyWithInfo ||
+            state.downloadState is Running
+    }
+
     override fun getTaskStateMap(): SnapshotStateMap<Task, Task.State> {
         return taskStateMap
     }
@@ -289,6 +329,17 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             }
         }
         taskStateMap += task to state
+        // Keep the foreground service alive from the moment a task is enqueued,
+        // not only when it starts running: the share-sheet activity finishes
+        // right after enqueuing, and starting the service later (from the
+        // background, once the scheduler picks the task up) is blocked on
+        // Android 12+. Starting it here — while the enqueuing activity is still
+        // in the foreground — always succeeds and keeps downloads protected.
+        // Idempotent: App.startService() returns early when already running.
+        when (state.downloadState) {
+            is Idle, is FetchingInfo, is ReadyWithInfo, is Running -> App.startService()
+            else -> {}
+        }
     }
 
     /**

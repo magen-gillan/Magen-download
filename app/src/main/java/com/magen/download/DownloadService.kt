@@ -90,8 +90,14 @@ class DownloadService : Service(), KoinComponent {
         }
     }
 
+    // "Busy" = any unfinished work, including tasks still queued as Idle (or
+    // ReadyWithInfo) that the scheduler has not picked up yet. Counting only
+    // Running/FetchingInfo here used to let an unbind — or the share-sheet
+    // activity's idle check — tear the service down while a freshly enqueued
+    // task was still waiting, after which the background start attempt was
+    // refused by Android 12+ FGS restrictions and downloads ran unprotected.
     private fun isDownloadQueueBusy(): Boolean =
-        runCatching { downloaderV2.countBusyTasks() }.getOrDefault(0) > 0
+        runCatching { downloaderV2.hasUnfinishedTasks() }.getOrDefault(false)
 
     private fun stopSelfSafely() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

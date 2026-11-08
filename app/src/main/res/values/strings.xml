@@ -452,6 +452,9 @@
     <string name="mode_simple_desc">Fewer, simpler options: video downloads in the highest or normal (480p) quality, and audio downloads directly in the best quality.</string>
     <string name="mode_advanced_desc">All the advanced options and full control, just like the classic experience.</string>
     <string name="mode_confirm">Done</string>
+    <string name="onboarding_by_brand">by Magen Gillan</string>
+    <string name="onboarding_welcome_lead">Download audio and video from links, manage your downloads, and revisit their history. Choose how the app works. You can change this anytime from Settings.</string>
+    <string name="onboarding_one_last_step">One last step</string>
     <string name="simple_video_best">Highest quality possible</string>
     <string name="simple_video_best_desc">Best available video and audio quality</string>
     <string name="simple_video_480">Normal quality (480p)</string>
