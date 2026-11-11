@@ -54,6 +54,15 @@ object UpdateUtil : KoinComponent {
     private val updateMutex = Mutex()
 
     /**
+     * Suspends while a yt-dlp self-update is replacing the binary, returns
+     * immediately otherwise. Download tasks call this before starting yt-dlp so
+     * they never run against a half-extracted install.
+     */
+    suspend fun awaitUpdateFinished() {
+        updateMutex.withLock {}
+    }
+
+    /**
      * Lazy lookup: Koin may not be started yet when UpdateUtil is first
      * touched (App.onCreate), so resolve on first use instead of init.
      */

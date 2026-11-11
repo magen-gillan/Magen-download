@@ -42,6 +42,7 @@ import com.tencent.mmkv.MMKV
 import com.yausername.ffmpeg.FFmpeg
 import com.yausername.youtubedl_android.YoutubeDL
 import java.io.File
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -90,11 +91,16 @@ class App : Application() {
             try {
                 YoutubeDL.init(this@App)
                 FFmpeg.init(this@App)
+                // The engine is usable from here on. Download tasks wait on this
+                // (see DownloaderV2.awaitEngineReady) so a share that cold-starts
+                // the process cannot launch yt-dlp before it is initialised.
+                ytdlpReady.complete(Unit)
                 DownloadUtil.getCookiesContentFromDatabase().getOrNull()?.let {
                     FileUtil.writeContentToFile(it, getCookiesFile())
                 }
                 UpdateUtil.deleteOutdatedApk()
             } catch (th: Throwable) {
+                ytdlpReady.completeExceptionally(th)
                 withContext(Dispatchers.Main) { startCrashReportActivity(th) }
             }
         }
@@ -133,6 +139,9 @@ class App : Application() {
         lateinit var applicationScope: CoroutineScope
         lateinit var connectivityManager: ConnectivityManager
         lateinit var packageInfo: PackageInfo
+
+        /** Completed once YoutubeDL + FFmpeg finished initialising (first-run extraction). */
+        val ytdlpReady = CompletableDeferred<Unit>()
 
         @Volatile var isServiceRunning = false
         private var isServiceBound = false

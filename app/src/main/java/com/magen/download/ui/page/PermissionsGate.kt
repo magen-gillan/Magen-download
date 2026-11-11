@@ -207,7 +207,7 @@ fun PermissionsGate(
     )
 }
 
-private fun Context.requestIgnoreBatteryOptimizations() {
+internal fun Context.requestIgnoreBatteryOptimizations() {
     runCatching {
             startActivity(
                 Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
@@ -217,7 +217,7 @@ private fun Context.requestIgnoreBatteryOptimizations() {
         .onFailure { it.printStackTrace() }
 }
 
-private fun Context.openAllFilesAccessSettings() {
+internal fun Context.openAllFilesAccessSettings() {
     runCatching {
             startActivity(
                 Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)

@@ -496,4 +496,16 @@
     <string name="welcome_brand_description">Download audio and video from links, manage your downloads, and revisit their history.</string>
     <string name="permission_mood_granted">Thanks! Alisha is happy—your downloader is ready.</string>
     <string name="permission_mood_denied">Alisha looks a little sad. You can grant the remaining permissions later.</string>
+    <string name="welcome_alisha_greeting">I\'m Alisha, your assistant! Tell me which link you want and I\'ll help you save the video or audio in a few simple steps.</string>
+    <string name="welcome_about_title">What is Magen download?</string>
+    <string name="welcome_about_body">An app that downloads video and audio from thousands of sites such as Facebook and YouTube. Share a link to the app or paste it, pick the quality, and the download continues in the background.</string>
+    <string name="welcome_feature_share">Share any link straight from other apps</string>
+    <string name="welcome_feature_background">Downloads keep going in the background with a progress notification</string>
+    <string name="welcome_feature_history">Browse your download history and open files anytime</string>
+    <string name="welcome_mode_section">Choose how you want to use the app</string>
+    <string name="welcome_permissions_section">Required permissions</string>
+    <string name="welcome_permissions_why">Needed for reliable downloads that are not interrupted. Tap a row to grant it.</string>
+    <string name="welcome_cta_choose_mode">Choose a mode to continue</string>
+    <string name="welcome_cta_enter">Start</string>
+    <string name="welcome_skip_permissions">Continue without permissions</string>
 </resources>

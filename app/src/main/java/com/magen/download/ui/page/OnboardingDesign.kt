@@ -59,21 +59,22 @@ import com.magen.download.R
  * the pill gradient CTA.
  */
 internal object OnboardingPalette {
-    val bg = Color(0xFF0A1020)
-    val bgGlow = Color(0xFF17315F)
-    val card = Color(0xFF121A2E)
-    val cardSelected = Color(0xFF1A2848)
-    val line = Color(0xFF22304F)
-    val text = Color(0xFFEEF3FF)
-    val mute = Color(0xFF9AAACB)
-    val blue = Color(0xFF6EA2FF)
+    // Navy + gold, taken from the Magen Gillan logo.
+    val bg = Color(0xFF07122B)
+    val bgGlow = Color(0xFF14397D)
+    val card = Color(0xFF0F1B38)
+    val cardSelected = Color(0xFF172B58)
+    val line = Color(0xFF22386B)
+    val text = Color(0xFFF3F6FF)
+    val mute = Color(0xFFA3B1D3)
+    val accent = Color(0xFFF2C14E)
     val ok = Color(0xFF5FD39A)
     val warn = Color(0xFFFF9F8F)
-    val iconCircle = Color(0xFF1F2C4B)
+    val iconCircle = Color(0xFF1B2D57)
     val radioOff = Color(0xFF5A6A8F)
-    val buttonTop = Color(0xFFA9C4FF)
-    val buttonBottom = Color(0xFF7FA8FF)
-    val buttonText = Color(0xFF0A1020)
+    val buttonTop = Color(0xFFFFE08A)
+    val buttonBottom = Color(0xFFD9A21B)
+    val buttonText = Color(0xFF07122B)
 }
 
 /** Sora is bundled for the onboarding screens only (OFL license, res/font). */
@@ -85,7 +86,7 @@ internal val OnboardingFontFamily: FontFamily =
     )
 
 @Composable
-private fun OnboardingText(
+internal fun OnboardingText(
     text: String,
     fontSize: TextUnit,
     fontWeight: FontWeight,
@@ -190,20 +191,7 @@ private fun OnboardingHeader(title: String, subtitle: String) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(
-            modifier =
-                Modifier.size(60.dp)
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Color.White),
-            contentAlignment = Alignment.Center,
-        ) {
-            Image(
-                painter = painterResource(R.drawable.onboarding_badge),
-                contentDescription = title,
-                modifier = Modifier.size(52.dp),
-                contentScale = ContentScale.Fit,
-            )
-        }
+        OnboardingLogoBadge(size = 60.dp, contentDescription = title)
         Column {
             OnboardingText(
                 text = title,
@@ -229,26 +217,19 @@ private fun OnboardingHero(heroTitle: String, minHeight: Dp, modifier: Modifier 
                 .fillMaxWidth()
                 .heightIn(min = minHeight)
                 .clip(RoundedCornerShape(26.dp))
-                .background(OnboardingPalette.card)
+                .background(
+                    Brush.linearGradient(
+                        listOf(OnboardingPalette.cardSelected, OnboardingPalette.card)
+                    )
+                )
                 .border(BorderStroke(1.dp, OnboardingPalette.line), RoundedCornerShape(26.dp)),
     ) {
         Image(
-            painter = painterResource(R.drawable.onboarding_hero),
+            painter = painterResource(R.drawable.alisha_chibi),
             contentDescription = null,
-            contentScale = ContentScale.Crop,
-            alignment = BiasAlignment(horizontalBias = 0f, verticalBias = -0.6f), // object-position: 50% 16%
-            modifier = Modifier.fillMaxSize(),
-        )
-        // Bottom fade so the overlaid title stays readable (CSS ::after).
-        Box(
-            modifier =
-                Modifier.matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0.6f to Color.Transparent,
-                            1f to OnboardingPalette.bg.copy(alpha = 0.8f),
-                        )
-                    )
+            contentScale = ContentScale.Fit,
+            alignment = Alignment.CenterEnd,
+            modifier = Modifier.align(Alignment.CenterEnd).size(minHeight + 24.dp),
         )
         OnboardingText(
             text = heroTitle,
@@ -257,10 +238,50 @@ private fun OnboardingHero(heroTitle: String, minHeight: Dp, modifier: Modifier 
             color = OnboardingPalette.text,
             lineHeight = 26.sp,
             modifier =
-                Modifier.align(Alignment.BottomStart)
-                    .padding(start = 18.dp, end = 18.dp, bottom = 12.dp),
+                Modifier.align(Alignment.CenterStart)
+                    .padding(start = 18.dp, end = minHeight + 28.dp, top = 12.dp, bottom = 12.dp),
         )
     }
+}
+
+/** White rounded badge holding the Magen Gillan mark (the logo is navy, so it needs a light tile). */
+@Composable
+internal fun OnboardingLogoBadge(
+    size: Dp,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier =
+            modifier
+                .size(size)
+                .clip(RoundedCornerShape(size * 0.3f))
+                .background(Color.White)
+                .border(
+                    BorderStroke(2.dp, OnboardingPalette.accent),
+                    RoundedCornerShape(size * 0.3f),
+                ),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.magen_logo_mark),
+            contentDescription = contentDescription,
+            modifier = Modifier.size(size * 0.82f),
+            contentScale = ContentScale.Fit,
+        )
+    }
+}
+
+/** Small section heading used on the welcome screen. */
+@Composable
+internal fun OnboardingSectionTitle(text: String, modifier: Modifier = Modifier) {
+    OnboardingText(
+        text = text,
+        fontSize = 14.sp,
+        fontWeight = FontWeight.Bold,
+        color = OnboardingPalette.accent,
+        modifier = modifier.fillMaxWidth().padding(top = 4.dp),
+    )
 }
 
 /** Option card: circular icon tile, title + description, trailing indicator. */
@@ -281,7 +302,7 @@ internal fun OnboardingOptionCard(
                 .clip(RoundedCornerShape(18.dp))
                 .background(if (selected) OnboardingPalette.cardSelected else OnboardingPalette.card)
                 .border(
-                    BorderStroke(1.5.dp, if (selected) OnboardingPalette.blue else OnboardingPalette.line),
+                    BorderStroke(1.5.dp, if (selected) OnboardingPalette.accent else OnboardingPalette.line),
                     RoundedCornerShape(18.dp),
                 )
                 .clickable(onClick = onClick)
@@ -326,7 +347,7 @@ internal fun OnboardingRadioIcon(selected: Boolean) {
     Icon(
         imageVector = OnboardingIcons.Radio,
         contentDescription = null,
-        tint = if (selected) OnboardingPalette.blue else OnboardingPalette.radioOff,
+        tint = if (selected) OnboardingPalette.accent else OnboardingPalette.radioOff,
         modifier = Modifier.size(20.dp),
     )
 }

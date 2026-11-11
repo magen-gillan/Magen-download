@@ -23,6 +23,7 @@ import com.magen.download.util.DownloadUtil
 import com.magen.download.util.FileUtil
 import com.magen.download.util.NotificationUtil
 import com.magen.download.util.PreferenceUtil
+import com.magen.download.util.UpdateUtil
 import com.magen.download.util.VideoInfo
 import com.magen.download.util.toStableNotificationId
 import com.yausername.youtubedl_android.YoutubeDL
@@ -31,11 +32,14 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -55,6 +59,7 @@ private const val MAX_CONCURRENCY = 3
 private const val FETCH_INFO_ATTEMPTS = 3
 private const val DOWNLOAD_ATTEMPTS = 2
 private const val RETRY_BASE_DELAY_MS = 2000L
+private const val ENGINE_WAIT_TIMEOUT_MS = 120_000L
 
 // Stall watchdog: a yt-dlp process that hangs (dead socket that never errors,
 // a merger gone zombie, a connection crawling at a few KB/s) would keep the
@@ -169,6 +174,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private val taskStateMap = mutableStateMapOf<Task, Task.State>()
     private val snapshotFlow = snapshotFlow { taskStateMap.toMap() }
     private var serviceRequested = false
+
+    // Guards the read-modify-write setters of Task.downloadState / info / viewState,
+    // which are called from several threads (progress callback, scheduler, UI cancel).
+    // Declared before init{} so it is initialised before any coroutine can use it.
+    private val stateLock = Any()
 
     // Stall-watchdog bookkeeping (task id -> epoch millis / marker).
     private val lastLineAt = ConcurrentHashMap<String, Long>()
@@ -375,19 +385,19 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private var Task.downloadState: DownloadState
         get() = state.downloadState
         set(value) {
-            state = state.copy(downloadState = value)
+            synchronized(stateLock) { state = state.copy(downloadState = value) }
         }
 
     private var Task.info: VideoInfo?
         get() = state.videoInfo
         set(value) {
-            state = state.copy(videoInfo = value)
+            synchronized(stateLock) { state = state.copy(videoInfo = value) }
         }
 
     private var Task.viewState: Task.ViewState
         get() = state.viewState
         set(value) {
-            state = state.copy(viewState = value)
+            synchronized(stateLock) { state = state.copy(viewState = value) }
         }
 
     private val Task.notificationId: Int
@@ -431,7 +441,15 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             // Blocking yt-dlp process waits belong on IO, not on the small
             // Default pool: on low-core devices saturated Default threads starve
             // the scheduler collector and progress freezes.
-            .launch(Dispatchers.IO) {
+            //
+            // LAZY on purpose: the task state must be switched to FetchingInfo
+            // BEFORE the body runs. Starting eagerly raced with the state
+            // assignment in .also{} below: when the IO thread won the race the
+            // body saw "Idle", returned immediately, and the task stayed in
+            // FetchingInfo forever with an already-finished job (the "shared
+            // from Facebook, spins forever, no video data" bug).
+            .launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                awaitEngineReady()
                 lastLineAt[id] = System.currentTimeMillis()
                 // Transient network/extractor failures (socket timeout, 5xx,
                 // throttled first request) used to surface as an error even
@@ -485,7 +503,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                     report = fetchError.stackTraceToString(),
                 )
             }
-            .also { job -> downloadState = FetchingInfo(job = job, taskId = id) }
+            .also { job ->
+                downloadState = FetchingInfo(job = job, taskId = id)
+                job.start()
+            }
     }
 
     private fun Task.download() {
@@ -506,7 +527,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             return
         }
         scope
-            .launch(Dispatchers.IO) {
+            // LAZY for the same reason as fetchInfo(): the state must already be
+            // Running when the body performs its "still running?" checks.
+            .launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                awaitEngineReady()
                 // Throttle notification spam: yt-dlp invokes this callback for
                 // every output line (download ticks, merger, post-processing),
                 // so refresh the notification at most twice per second.
@@ -633,7 +657,31 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                     report = downloadError.stackTraceToString(),
                 )
             }
-            .also { job -> downloadState = Running(job = job, taskId = id) }
+            .also { job ->
+                downloadState = Running(job = job, taskId = id)
+                job.start()
+            }
+    }
+
+    /**
+     * Waits (bounded) until the yt-dlp engine finished its first-run
+     * initialisation and no yt-dlp self-update is replacing its files.
+     * Without this, a share that cold-starts the process could launch yt-dlp
+     * before YoutubeDL.init() completed, or while the updater was swapping
+     * the binary — both ended in a failed or frozen task.
+     */
+    private suspend fun awaitEngineReady() {
+        withTimeoutOrNull(ENGINE_WAIT_TIMEOUT_MS) {
+            try {
+                App.ytdlpReady.await()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Throwable) {
+                // Init failed: App already shows the crash report; let the task
+                // run and fail with a proper error message.
+            }
+            UpdateUtil.awaitUpdateFinished()
+        }
     }
 
     private fun killStalledProcess(taskId: String, reason: String) {
@@ -648,15 +696,20 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private fun Task.cancelImpl(): Boolean {
         when (val preState = downloadState) {
             is DownloadState.Cancelable -> {
-                val res = YoutubeDL.destroyProcessById(preState.taskId)
-                if (res) {
-                    preState.job.cancel()
-                    val progress = if (preState is Running) preState.progress else null
-                    NotificationUtil.cancelNotification(notificationId)
-                    downloadState =
-                        DownloadState.Canceled(action = preState.action, progress = progress)
-                }
-                return res
+                // destroyProcessById() returns false when no yt-dlp process is
+                // registered under this id (task still waiting for the engine,
+                // or its job already died). Previously that made the task
+                // impossible to cancel; always cancel the job and move the task
+                // to Canceled so the user can restart it.
+                val destroyed = runCatching { YoutubeDL.destroyProcessById(preState.taskId) }
+                    .getOrDefault(false)
+                preState.job.cancel()
+                val progress = if (preState is Running) preState.progress else null
+                NotificationUtil.cancelNotification(notificationId)
+                downloadState =
+                    DownloadState.Canceled(action = preState.action, progress = progress)
+                if (!destroyed) Log.w(TAG, "cancel: no live process for $id")
+                return true
             }
             Idle -> {
                 downloadState = DownloadState.Canceled(action = FetchInfo)

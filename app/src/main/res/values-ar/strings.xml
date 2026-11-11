@@ -501,4 +501,16 @@
     <string name="welcome_brand_description">نزّل الصوت والفيديو من الروابط، وأدر تنزيلاتك وراجع سجلّها.</string>
     <string name="permission_mood_granted">شكرًا لك! اليشيا سعيدة، وتطبيق التنزيل جاهز.</string>
     <string name="permission_mood_denied">تبدو اليشيا حزينة قليلًا. يمكنك منح الأذونات المتبقية لاحقًا.</string>
+    <string name="welcome_alisha_greeting">أنا أليشا، مساعدتك! أخبرني أي رابط تريد وسأساعدك على حفظ الفيديو أو الصوت بخطوات بسيطة.</string>
+    <string name="welcome_about_title">ما هو Magen download؟</string>
+    <string name="welcome_about_body">تطبيق لتحميل الفيديو والصوت من آلاف المواقع مثل فيسبوك ويوتيوب. شارك الرابط مع التطبيق أو الصقه، اختر الجودة، ويكمل التحميل في الخلفية.</string>
+    <string name="welcome_feature_share">شارك أي رابط مباشرة من التطبيقات الأخرى</string>
+    <string name="welcome_feature_background">يستمر التحميل في الخلفية مع إشعار بالتقدم</string>
+    <string name="welcome_feature_history">تصفّح سجل التحميلات وافتح ملفاتك في أي وقت</string>
+    <string name="welcome_mode_section">اختر طريقة استخدام التطبيق</string>
+    <string name="welcome_permissions_section">الأذونات المطلوبة</string>
+    <string name="welcome_permissions_why">نحتاجها ليعمل التحميل بموثوقية وبدون انقطاع. اضغط على أي سطر لمنحه.</string>
+    <string name="welcome_cta_choose_mode">اختر وضع الاستخدام للمتابعة</string>
+    <string name="welcome_cta_enter">ابدأ</string>
+    <string name="welcome_skip_permissions">المتابعة بدون أذونات</string>
 </resources>

@@ -44,7 +44,6 @@ import com.magen.download.ui.common.id
 import com.magen.download.ui.common.slideInVerticallyComposable
 import com.magen.download.ui.page.command.TaskListPage
 import com.magen.download.ui.page.command.TaskLogPage
-import com.magen.download.ui.page.ModeSelectionOverlay
 import com.magen.download.ui.page.downloadv2.configure.DownloadDialogViewModel
 import com.magen.download.ui.page.downloadv2.DownloadPageV2
 import com.magen.download.ui.page.settings.SettingsPage
@@ -254,14 +253,16 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
             }
         }
 
-        if (!modeSelected) {
-            ModeSelectionOverlay(onConfirmed = { modeSelected = true })
-        }
-
-        // Right after the first-launch mode selection (and for existing installs
-        // upgrading from older versions): request every permission the app needs.
-        if (modeSelected && !permissionsHandled) {
-            PermissionsGate(onDone = { permissionsHandled = true })
+        // First launch (and upgrades from versions that never asked for permissions):
+        // one welcome page with logo, Alisha, app explanation, mode choice and
+        // permissions. Enters the app directly once both are done.
+        if (!onboardingDone) {
+            WelcomeFlow(
+                onFinished = {
+                    modeSelected = true
+                    permissionsHandled = true
+                }
+            )
         }
     }
 }
