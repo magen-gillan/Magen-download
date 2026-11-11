@@ -1,6 +1,12 @@
 # Changes in this build (not yet compiled — please build and test)
 
 ## Bug fixes
+0. **Download only started after opening the app (root cause #2)** — `DownloaderV2.kt`
+   The scheduler observes a `SnapshotStateMap` through `snapshotFlow`. Compose only delivers
+   those changes while a composition exists. After a share the sheet activity finishes, so the
+   info fetch ran but the next step (start the download) was never triggered until the app UI
+   was opened. Every write to the state map now calls `Snapshot.sendApplyNotifications()`
+   (`notifyStateChanged()`), so downloads run with no UI at all.
 1. **Share-from-Facebook freeze (root cause)** — `download/DownloaderV2.kt`
    `fetchInfo()` / `download()` launched their coroutine eagerly and set the task state
    (`FetchingInfo` / `Running`) only afterwards in `.also {}`. When the IO thread ran first,

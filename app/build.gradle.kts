@@ -47,7 +47,7 @@ android {
         applicationId = "com.magen.download"
         minSdk = 24
         targetSdk = 35
-        versionCode = 202_080_400
+        versionCode = 202_090_400
         check(versionCode == currentVersionCode)
 
         versionName = baseVersionName

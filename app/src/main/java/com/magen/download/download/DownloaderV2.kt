@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.magen.download.App
 import com.magen.download.R
@@ -175,6 +176,20 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private val snapshotFlow = snapshotFlow { taskStateMap.toMap() }
     private var serviceRequested = false
 
+    /**
+     * Writes to a SnapshotStateMap only reach snapshotFlow{} observers once the
+     * global snapshot is "applied". Compose does that on every frame, but ONLY
+     * while a composition is alive. When a video is shared, the share-sheet
+     * activity finishes right after enqueueing, so no UI exists: the scheduler
+     * received the first emission (fetch info), but the later state changes
+     * (ReadyWithInfo -> start download) were never delivered and the task sat at
+     * "Downloading 0 MB" until the user opened the app. Applying the
+     * notifications ourselves makes the queue independent of the UI.
+     */
+    private fun notifyStateChanged() {
+        Snapshot.sendApplyNotifications()
+    }
+
     // Guards the read-modify-write setters of Task.downloadState / info / viewState,
     // which are called from several threads (progress callback, scheduler, UI cancel).
     // Declared before init{} so it is initialised before any coroutine can use it.
@@ -339,6 +354,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             }
         }
         taskStateMap += task to state
+        notifyStateChanged()
         // Keep the foreground service alive from the moment a task is enqueued,
         // not only when it starts running: the share-sheet activity finishes
         // right after enqueuing, and starting the service later (from the
@@ -360,6 +376,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     override fun remove(task: Task): Boolean {
         if (taskStateMap.contains(task)) {
             taskStateMap.remove(task)
+            notifyStateChanged()
             return true
         }
         return false
@@ -380,6 +397,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             // coroutine was still finishing up (e.g. writing its final state).
             if (!taskStateMap.contains(this)) return
             taskStateMap[this] = value
+            notifyStateChanged()
         }
 
     private var Task.downloadState: DownloadState
