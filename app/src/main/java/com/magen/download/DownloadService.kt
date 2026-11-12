@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.util.Log
 import com.magen.download.download.DownloaderV2
 import com.magen.download.util.NotificationUtil
@@ -14,6 +15,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 
 private const val TAG = "DownloadService"
+private const val WAKE_LOCK_TIMEOUT_MS = 6 * 60 * 60 * 1000L
 
 /**
  * Foreground keep-alive service for the download queue.
@@ -36,9 +38,22 @@ class DownloadService : Service(), KoinComponent {
 
     private val downloaderV2: DownloaderV2 by lazy { get<DownloaderV2>() }
 
+    private var wakeLock: PowerManager.WakeLock? = null
+
     override fun onCreate() {
         super.onCreate()
         startForegroundWithNotification()
+        // Keep the CPU awake while the queue is being processed with the screen off or
+        // the app in the background (some OEM power managers otherwise suspend the
+        // yt-dlp child process). Timed so it can never leak; released in onDestroy.
+        runCatching {
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            wakeLock =
+                pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MagenDownload:queue").apply {
+                    setReferenceCounted(false)
+                    acquire(WAKE_LOCK_TIMEOUT_MS)
+                }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -122,6 +137,8 @@ class DownloadService : Service(), KoinComponent {
     }
 
     override fun onDestroy() {
+        runCatching { wakeLock?.takeIf { it.isHeld }?.release() }
+        wakeLock = null
         isForegroundStarted = false
         // The system can kill the service independently of App.stopService()
         // (memory pressure, app swipe). Without this reset the stale

@@ -23,6 +23,7 @@ import com.magen.download.download.Task.TypeInfo
 import com.magen.download.util.DownloadUtil
 import com.magen.download.util.FileUtil
 import com.magen.download.util.NotificationUtil
+import com.magen.download.util.DiagLog
 import com.magen.download.util.PreferenceUtil
 import com.magen.download.util.UpdateUtil
 import com.magen.download.util.VideoInfo
@@ -44,6 +45,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 
@@ -61,6 +63,7 @@ private const val FETCH_INFO_ATTEMPTS = 3
 private const val DOWNLOAD_ATTEMPTS = 2
 private const val RETRY_BASE_DELAY_MS = 2000L
 private const val ENGINE_WAIT_TIMEOUT_MS = 120_000L
+private const val BACKUP_SAMPLE_MS = 2_000L
 
 // Stall watchdog: a yt-dlp process that hangs (dead socket that never errors,
 // a merger gone zombie, a connection crawling at a few KB/s) would keep the
@@ -231,7 +234,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         App.startService()
                     } else if (serviceRequested) {
                         serviceRequested = false
-                        App.stopService()
+                        // The legacy Downloader (custom commands) shares this service.
+                        val legacyBusy =
+                            com.magen.download.Downloader.processCount.value > 0 ||
+                                !com.magen.download.Downloader.isDownloaderAvailable()
+                        if (!legacyBusy) App.stopService()
                     }
                 }
         }
@@ -284,10 +291,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             snapshotFlow
                 .map { it.filter { it.value.downloadState !is Completed } }
                 .distinctUntilChanged()
-                .collect {
-                    it.forEach { Log.d(TAG, it.value.viewState.title) }
-                    PreferenceUtil.encodeTaskListBackup(it)
-                }
+                // Progress changes the state many times per second and each emission
+                // serialises the whole queue (with every VideoInfo and its format
+                // list) to disk. Persist at most once every 2 s; the latest state wins.
+                .sample(BACKUP_SAMPLE_MS)
+                .collect { PreferenceUtil.encodeTaskListBackup(it) }
         }
     }
 
@@ -403,6 +411,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
     private var Task.downloadState: DownloadState
         get() = state.downloadState
         set(value) {
+            // Log only real transitions (progress updates keep the same state class).
+            if (value::class != state.downloadState::class) {
+                DiagLog.log("task ${id.takeLast(8)} -> ${value::class.simpleName}")
+            }
             synchronized(stateLock) { state = state.copy(downloadState = value) }
         }
 
@@ -505,6 +517,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                                 "fetchInfo attempt ${attempt + 1}/$FETCH_INFO_ATTEMPTS failed",
                                 throwable,
                             )
+                            DiagLog.log("fetch attempt ${attempt + 1} failed: ${throwable.message?.take(200)}")
                             lastError = throwable
                         }
                     if (downloadState == ReadyWithInfo) return@launch
@@ -560,6 +573,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                 // One app-level retry for transient whole-process failures;
                 // yt-dlp resumes from the .part file so nothing is lost.
                 var lastError: Throwable? = null
+                var loggedLines = 0
                 repeat(DOWNLOAD_ATTEMPTS) { attempt ->
                     if (downloadState !is Running) return@launch
                     watchdogKilled.remove(id)
@@ -573,6 +587,10 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                             taskId = id,
                             downloadPreferences = preferences,
                             progressCallback = { progressPercentage, _, text ->
+                                if (loggedLines < 5) {
+                                    loggedLines++
+                                    DiagLog.log("yt-dlp line ${progressPercentage.toInt()}% ${text.take(60)}")
+                                }
                                 lastLineAt[id] = System.currentTimeMillis()
                                 if (progressPercentage >= 0f) {
                                     val previous = lastProgressValue[id]
@@ -659,6 +677,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                                 "download attempt ${attempt + 1}/$DOWNLOAD_ATTEMPTS failed",
                                 error,
                             )
+                            DiagLog.log("download attempt ${attempt + 1} failed: ${error.message?.take(200)}")
                             lastError = error
                         }
                     if (downloadState is Completed) return@launch
@@ -689,6 +708,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
      * the binary — both ended in a failed or frozen task.
      */
     private suspend fun awaitEngineReady() {
+        DiagLog.log("waiting for engine (ready=${App.ytdlpReady.isCompleted})")
         withTimeoutOrNull(ENGINE_WAIT_TIMEOUT_MS) {
             try {
                 App.ytdlpReady.await()
@@ -700,6 +720,7 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
             }
             UpdateUtil.awaitUpdateFinished()
         }
+        DiagLog.log("engine wait finished")
     }
 
     private fun killStalledProcess(taskId: String, reason: String) {
@@ -770,7 +791,11 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
         check(type is TypeInfo.CustomCommand)
         val template = type.template
         scope
-            .launch {
+            // LAZY: a fast command could finish (Completed/Error) before the
+            // .also{} below set Running, and Running would then overwrite the
+            // final state of an already-dead job (task stuck forever).
+            .launch(Dispatchers.IO, start = CoroutineStart.LAZY) {
+                awaitEngineReady()
                 DownloadUtil.executeCustomCommandTask(url, id, template, preferences) {
                         progressPercentage,
                         _,
@@ -826,6 +851,9 @@ class DownloaderV2Impl(private val appContext: Context) : DownloaderV2, KoinComp
                         )
                     }
             }
-            .also { downloadState = Running(job = it, taskId = id) }
+            .also { job ->
+                downloadState = Running(job = job, taskId = id)
+                job.start()
+            }
     }
 }

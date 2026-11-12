@@ -1,6 +1,7 @@
 package com.magen.download
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Application
 import android.content.ClipboardManager
 import android.content.ComponentName
@@ -12,6 +13,7 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.IBinder
 import androidx.core.content.getSystemService
 import com.google.android.material.color.DynamicColors
@@ -58,6 +60,27 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         MMKV.initialize(this)
+        registerActivityLifecycleCallbacks(
+            object : ActivityLifecycleCallbacks {
+                override fun onActivityStarted(activity: Activity) {
+                    com.magen.download.util.DiagLog.log("UI started: ${activity.javaClass.simpleName}")
+                }
+
+                override fun onActivityStopped(activity: Activity) {
+                    com.magen.download.util.DiagLog.log("UI stopped: ${activity.javaClass.simpleName}")
+                }
+
+                override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) {}
+
+                override fun onActivityResumed(activity: Activity) {}
+
+                override fun onActivityPaused(activity: Activity) {}
+
+                override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+
+                override fun onActivityDestroyed(activity: Activity) {}
+            }
+        )
 
         startKoin {
             androidLogger()

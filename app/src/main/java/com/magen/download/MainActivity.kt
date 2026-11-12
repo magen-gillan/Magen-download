@@ -48,10 +48,10 @@ class MainActivity : AppCompatActivity() {
         // Cold-start shares / URL opens are delivered to onCreate (the task did
         // not exist yet); onNewIntent only covers the warm case. Without this,
         // a shared link is silently dropped whenever the app process is dead.
-        // On first run the URL is intentionally dropped so the download sheet
-        // never floats above the mode-selection onboarding.
+        // On first run the link is parked in PendingShare and the download sheet is shown
+        // once the welcome screen finishes (see AppEntry), instead of being lost.
         val sharedUrl = intent?.getSharedURL()
-        if (sharedUrl != null && APP_MODE_SELECTED.getBoolean()) {
+        if (sharedUrl != null) {
             // Consume the shared payload: the framework re-delivers the same
             // intent on recreation (rotation/theme change), and an unconsumed
             // one used to re-open a share sheet the user already dismissed.
@@ -61,7 +61,13 @@ class MainActivity : AppCompatActivity() {
                 action = Intent.ACTION_MAIN
                 setIntent(this)
             }
-            dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(sharedUrl)))
+            if (APP_MODE_SELECTED.getBoolean()) {
+                dialogViewModel.postAction(
+                    DownloadDialogViewModel.Action.ShowSheet(listOf(sharedUrl))
+                )
+            } else {
+                PendingShare.url = sharedUrl
+            }
         }
 
         setContent {
@@ -90,7 +96,11 @@ class MainActivity : AppCompatActivity() {
                 action = Intent.ACTION_MAIN
                 setIntent(this)
             }
-            dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(url)))
+            if (APP_MODE_SELECTED.getBoolean()) {
+                dialogViewModel.postAction(DownloadDialogViewModel.Action.ShowSheet(listOf(url)))
+            } else {
+                PendingShare.url = url
+            }
         }
     }
 
@@ -201,4 +211,11 @@ class MainActivity : AppCompatActivity() {
         /** Last clipboard content checked, to avoid suggesting the same entry twice. */
         private var lastCheckedClipboard: String = ""
     }
+}
+
+/** A link shared to the app before the welcome screen was completed. */
+object PendingShare {
+    @Volatile var url: String? = null
+
+    fun take(): String? = url.also { url = null }
 }

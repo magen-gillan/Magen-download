@@ -261,6 +261,12 @@ fun AppEntry(dialogViewModel: DownloadDialogViewModel) {
                 onFinished = {
                     modeSelected = true
                     permissionsHandled = true
+                    com.magen.download.PendingShare.take()?.let { url ->
+                        dialogViewModel.postAction(
+                            com.magen.download.ui.page.downloadv2.configure.DownloadDialogViewModel
+                                .Action.ShowSheet(listOf(url))
+                        )
+                    }
                 }
             )
         }

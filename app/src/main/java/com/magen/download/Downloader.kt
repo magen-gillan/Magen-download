@@ -189,7 +189,16 @@ object Downloader {
                         startService()
                     } else if (serviceRequested) {
                         serviceRequested = false
-                        stopService()
+                        // The queue-based downloader (DownloaderV2) shares the same
+                        // foreground service: never stop it under its running tasks.
+                        val v2Busy =
+                            runCatching {
+                                    org.koin.core.context.GlobalContext.get()
+                                        .get<com.magen.download.download.DownloaderV2>()
+                                        .hasUnfinishedTasks()
+                                }
+                                .getOrDefault(false)
+                        if (!v2Busy) stopService()
                     }
                 }
         }
