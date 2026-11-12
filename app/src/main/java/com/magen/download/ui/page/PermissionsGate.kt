@@ -104,6 +104,10 @@ fun PermissionsGate(
 
     val allGranted = notificationsGranted && storageGranted && batteryGranted
 
+    // One tap = every missing permission UI in sequence (runtime dialogs,
+    // all-files page, battery dialog) instead of one window per tap.
+    val launchPermissionChain = rememberPermissionChainLauncher()
+
     if (allGranted) {
         LaunchedEffect(Unit) {
             // Side effect in an effect, not in composition: writing the flag
@@ -173,22 +177,7 @@ fun PermissionsGate(
                         if (allGranted) R.string.permissions_all_granted
                         else R.string.permissions_grant
                     ),
-                onClick = {
-                    when {
-                        !notificationsGranted -> {
-                            if (Build.VERSION.SDK_INT >= 33)
-                                notificationsPermission?.launchPermissionRequest()
-                        }
-
-                        !storageGranted -> {
-                            if (Build.VERSION.SDK_INT <= 29)
-                                legacyStoragePermission?.launchPermissionRequest()
-                            else context.openAllFilesAccessSettings()
-                        }
-
-                        !batteryGranted -> context.requestIgnoreBatteryOptimizations()
-                    }
-                },
+                onClick = { launchPermissionChain() },
                 enabled = !allGranted,
             )
 

@@ -137,20 +137,9 @@ fun WelcomeFlow(onFinished: () -> Unit, modifier: Modifier = Modifier) {
     val allGranted = notificationsGranted && storageGranted && batteryGranted
     val modeChosen = simpleSelected != null
 
-    fun requestNextMissingPermission() {
-        when {
-            !notificationsGranted -> {
-                if (Build.VERSION.SDK_INT >= 33) notificationsPermission?.launchPermissionRequest()
-            }
-
-            !storageGranted -> {
-                if (Build.VERSION.SDK_INT <= 29) legacyStoragePermission?.launchPermissionRequest()
-                else context.openAllFilesAccessSettings()
-            }
-
-            !batteryGranted -> context.requestIgnoreBatteryOptimizations()
-        }
-    }
+    // One tap = every missing permission UI in sequence (runtime dialogs,
+    // all-files page, battery dialog) instead of one window per tap.
+    val launchPermissionChain = rememberPermissionChainLauncher()
 
     fun finishOnboarding() {
         val simple = simpleSelected ?: return
@@ -280,7 +269,7 @@ fun WelcomeFlow(onFinished: () -> Unit, modifier: Modifier = Modifier) {
                     !allGranted ->
                         OnboardingPrimaryButton(
                             text = stringResource(R.string.permissions_grant),
-                            onClick = { requestNextMissingPermission() },
+                            onClick = { launchPermissionChain() },
                         )
 
                     !modeChosen ->

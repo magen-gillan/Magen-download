@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="132" viewBox="0 0 560 132" role="img" aria-label="Download Magen Download">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3fd474"/>
+      <stop offset="1" stop-color="#1f9d44"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="552" height="124" rx="62" fill="url(#bg)" stroke="#0e6b2e" stroke-width="3"/>
+  <g stroke="#ffffff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M86 38 v28"/>
+    <path d="M70 52 l16 16 16 -16"/>
+    <path d="M62 84 h48"/>
+  </g>
+  <text x="336" y="60" font-family="Segoe UI, Tahoma, DejaVu Sans, Arial, sans-serif" font-size="34" font-weight="700" fill="#ffffff" text-anchor="middle" direction="rtl">حمّل التطبيق من هنا</text>
+  <text x="336" y="96" font-family="Segoe UI, Tahoma, DejaVu Sans, Arial, sans-serif" font-size="19" font-weight="600" fill="#d9f7e3" text-anchor="middle">Download the latest APK — arm64-v8a</text>
+</svg>

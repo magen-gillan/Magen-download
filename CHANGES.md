@@ -44,3 +44,16 @@
   lists ONE entry (the one that opens the app, `MainActivity`).
 - A link shared before the welcome screen is finished is kept (`PendingShare`) and its download
   sheet opens when the welcome screen completes, instead of being dropped.
+
+## Build 6 (final polish)
+- README rebuilt: logo first, chibi Alisha under it, then a big "download from here"
+  button (docs/download_button.svg) linking to the latest release, plus a simple
+  description and feature list. Logo/chibi assets committed under `docs/`.
+- One-press permission chain (`ui/page/PermissionChain.kt`, used by the welcome screen
+  and the permissions gate): the "Grant permissions" button now opens EVERY missing
+  permission UI back to back — runtime dialogs in one batch (notifications 33+,
+  legacy storage <= 29), then the all-files-access page (30+), then the battery
+  dialog — instead of one window per press. Each window opens once and only when
+  its permission is still missing; the chain stops if the user backs out of the
+  all-files page.
+- Version bumped to 2.2.11 (versionCode 202_110_400).
