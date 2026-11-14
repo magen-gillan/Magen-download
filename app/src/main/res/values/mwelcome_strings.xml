@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mwelcome_title">One step and we’re ready</string>
+    <string name="mwelcome_sub">I need these permissions so the app works well.</string>
+    <string name="mwelcome_go">Grant permissions &amp; start</string>
+    <string name="mwelcome_pick_first">Pick a mode first</string>
+    <string name="mwelcome_skip">Maybe later</string>
+    <string name="mwelcome_granted">Granted</string>
+    <string name="mwelcome_required">Required</string>
+    <string name="mwelcome_next_t">Great!</string>
+    <string name="mwelcome_next_b">Almost there…</string>
+    <string name="mwelcome_done_t">All set!</string>
+    <string name="mwelcome_done_b">Welcome to the Magen world.</string>
+    <string name="mwelcome_later_t">Okay!</string>
+    <string name="mwelcome_later_b">You can grant these later in Settings.</string>
+    <string name="mwelcome_perm_notifications_title">Notifications</string>
+    <string name="mwelcome_perm_notifications_desc">Controls and alerts</string>
+    <string name="mwelcome_perm_alarms_title">Exact alarms</string>
+    <string name="mwelcome_perm_alarms_desc">Change wallpapers on schedule</string>
+    <string name="mwelcome_perm_battery_title">Background access</string>
+    <string name="mwelcome_perm_battery_desc">Not stopped by battery saver</string>
+    <string name="mwelcome_perm_audio_title">Music access</string>
+    <string name="mwelcome_perm_audio_desc">Browse and play your songs</string>
+    <string name="mwelcome_perm_images_title">Album art</string>
+    <string name="mwelcome_perm_images_desc">Show cover art</string>
+    <string name="mwelcome_perm_videos_title">Video access</string>
+    <string name="mwelcome_perm_videos_desc">Browse and play your videos</string>
+    <string name="mwelcome_perm_files_title">Download folder</string>
+    <string name="mwelcome_perm_files_desc">Save your files</string>
+    <string name="mwelcome_perm_install_title">Install updates</string>
+    <string name="mwelcome_perm_install_desc">Let the app update itself</string>
+    <string name="mwelcome_tag">Download videos with ease</string>
+    <string name="mwelcome_hi_t">Hi, I’m Alisha!</string>
+    <string name="mwelcome_hi_b">Pick your mode, grant access, and let’s download.</string>
+    <string name="mwelcome_brand" translatable="false">Magen Download</string>
+</resources>

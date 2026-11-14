@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="mwelcome_title">خطوة واحدة ونبدأ</string>
+    <string name="mwelcome_sub">أحتاج هذه الأذونات حتى يعمل التطبيق جيدًا.</string>
+    <string name="mwelcome_go">منح الأذونات والبدء</string>
+    <string name="mwelcome_pick_first">اختر الوضع أولًا</string>
+    <string name="mwelcome_skip">لاحقًا</string>
+    <string name="mwelcome_granted">تم</string>
+    <string name="mwelcome_required">مطلوب</string>
+    <string name="mwelcome_next_t">ممتاز!</string>
+    <string name="mwelcome_next_b">تبقّى القليل…</string>
+    <string name="mwelcome_done_t">تم التجهيز!</string>
+    <string name="mwelcome_done_b">أهلًا بك في عالم Magen.</string>
+    <string name="mwelcome_later_t">حسنًا!</string>
+    <string name="mwelcome_later_b">يمكنك منحها لاحقًا من الإعدادات.</string>
+    <string name="mwelcome_perm_notifications_title">الإشعارات</string>
+    <string name="mwelcome_perm_notifications_desc">للتحكم والتنبيهات</string>
+    <string name="mwelcome_perm_alarms_title">التنبيهات الدقيقة</string>
+    <string name="mwelcome_perm_alarms_desc">لتغيير الخلفية في وقتها</string>
+    <string name="mwelcome_perm_battery_title">العمل في الخلفية</string>
+    <string name="mwelcome_perm_battery_desc">دون توقف بسبب البطارية</string>
+    <string name="mwelcome_perm_audio_title">الوصول إلى الموسيقى</string>
+    <string name="mwelcome_perm_audio_desc">لعرض أغانيك وتشغيلها</string>
+    <string name="mwelcome_perm_images_title">صور الألبومات</string>
+    <string name="mwelcome_perm_images_desc">لعرض أغلفة الأغاني</string>
+    <string name="mwelcome_perm_videos_title">الوصول إلى الفيديوهات</string>
+    <string name="mwelcome_perm_videos_desc">لعرض فيديوهاتك وتشغيلها</string>
+    <string name="mwelcome_perm_files_title">مجلد التحميل</string>
+    <string name="mwelcome_perm_files_desc">لحفظ ملفاتك</string>
+    <string name="mwelcome_perm_install_title">تثبيت التحديثات</string>
+    <string name="mwelcome_perm_install_desc">ليحدّث التطبيق نفسه</string>
+    <string name="mwelcome_tag">حمّل الفيديوهات بسهولة</string>
+    <string name="mwelcome_hi_t">مرحبًا، أنا أليشا!</string>
+    <string name="mwelcome_hi_b">اختر وضعك ثم امنحني الأذونات لنبدأ التحميل.</string>
+</resources>
