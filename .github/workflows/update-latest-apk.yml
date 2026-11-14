@@ -1,0 +1,40 @@
+name: Keep latest APK download link updated
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  update-latest-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download the APK published in this release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/release-assets"
+          gh release download "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern '*.apk' \
+            --dir "$RUNNER_TEMP/release-assets"
+          apk="$(find "$RUNNER_TEMP/release-assets" -type f -name '*.apk' ! -name 'latest.apk' | head -n 1)"
+          test -n "$apk"
+          cp "$apk" "$RUNNER_TEMP/latest.apk"
+
+      - name: Replace the stable latest.apk asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          gh release delete-asset "$TAG" latest.apk \
+            --repo "$GITHUB_REPOSITORY" \
+            --yes || true
+          gh release upload "$TAG" "$RUNNER_TEMP/latest.apk" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber

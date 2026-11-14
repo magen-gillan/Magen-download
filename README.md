@@ -12,7 +12,7 @@
 <p align="center"><em>Hello! I’m Alisha. Send me a link and I’ll help you download video or audio with ease.</em></p>
 
 <p align="center">
-  <a href="https://github.com/magen-gillan/Magen-download/releases/download/v2.2.11/Magen-download-2.2.11-arm64.apk"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_%D8%AA%D8%AD%D9%85%D9%8A%D9%84_%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82-00C853?style=for-the-badge&logo=android&logoColor=white" alt="تحميل آخر إصدار"></a>
+  <a href="https://github.com/magen-gillan/Magen-download/releases/latest/download/latest.apk"><img src="docs/download_button.svg" width="560" alt="تحميل أحدث نسخة | Download latest APK"></a>
 </p>
 
 <p align="center"><a href="https://github.com/magen-gillan/Magen-download/releases/latest">عرض جميع الإصدارات | View all releases</a></p>
@@ -46,11 +46,11 @@
 
 ## التثبيت | Installation
 
-1. اضغط زر التحميل الأخضر أعلاه لتنزيل أحدث APK لمعمارية arm64-v8a.
+1. اضغط زر التحميل الأخضر أعلاه لتنزيل أحدث APK لمعمارية arm64-v8a. يُحدَّث الرابط تلقائيًا مع كل إصدار جديد.
 2. ثبّت الملف واسمح بالتثبيت من مصادر غير معروفة.
 3. اختر الوضع، امنح الأذونات، ثم شارك رابط فيديو أو صوت.
 
-1. Press the green button above to download the latest arm64-v8a APK.
+1. Press the green button above to download the latest arm64-v8a APK. The link updates automatically for every new release.
 2. Install it and allow installation from unknown sources.
 3. Choose a mode, grant permissions, and share a video or audio link.
 
