@@ -1,63 +1,67 @@
-<div align="center">
+<p align="center">
+  <img src="docs/logo.gif" width="150" alt="Magen animated logo">
+</p>
 
-<img src="docs/logo_green.gif" width="180" alt="Magen Download"/>
+<h1 align="center">Magen Download</h1>
 
-<img src="docs/alisha_chibi.webp" width="200" alt=""/>
+<p align="center">
+  <img src="docs/alisha.png" width="420" alt="Alisha character">
+</p>
 
-</div>
+<p align="center"><strong>مرحبًا! أنا أليشا. أرسل أي رابط وسأساعدك على تنزيل الفيديو أو الصوت بسهولة.</strong></p>
+<p align="center"><em>Hello! I’m Alisha. Send me a link and I’ll help you download video or audio with ease.</em></p>
 
-## ⬇️ حمّل التطبيق من هنا
+<p align="center">
+  <a href="https://github.com/magen-gillan/Magen-download/releases/download/v2.2.11/Magen-download-2.2.11-arm64.apk"><img src="https://img.shields.io/badge/%E2%AC%87%EF%B8%8F_%D8%AA%D8%AD%D9%85%D9%8A%D9%84_%D8%A7%D9%84%D8%AA%D8%B7%D8%A8%D9%8A%D9%82-00C853?style=for-the-badge&logo=android&logoColor=white" alt="تحميل آخر إصدار"></a>
+</p>
 
-<div align="center">
+<p align="center"><a href="https://github.com/magen-gillan/Magen-download/releases/latest">عرض جميع الإصدارات | View all releases</a></p>
 
-[![حمّل التطبيق من هنا](docs/download_button.svg)](https://github.com/magen-gillan/Magen-download/releases/latest)
+---
 
-**آخر نسخة — تحميل مباشر:**
-[Magen-download-2.2.11-arm64.apk](https://github.com/magen-gillan/Magen-download/releases/download/v2.2.11/Magen-download-2.2.11-arm64.apk)
+## عن التطبيق | About
 
-يعمل على جميع الهواتف الحديثة (arm64-v8a) — Honor وSamsung وXiaomi وغيرها.
+**العربية:** Magen Download تطبيق Android لتحميل الفيديوهات والأغاني من آلاف المواقع، معتمد على yt-dlp وواجهة عربية/إنجليزية واضحة. اختر الوضع البسيط للتحميل السريع أو الوضع المتقدم للتحكم الكامل في الصيغة والجودة والترجمات.
 
-</div>
+**English:** Magen Download is an Android app for downloading videos and audio from thousands of websites. Powered by yt-dlp, it offers a clear Arabic/English interface, a simple mode for quick downloads, and an advanced mode for full format, quality, subtitle, and audio-conversion control.
 
-## ما هذا التطبيق؟
+## المميزات | Features
 
-تطبيق أندرويد لتحميل الفيديوهات والأغاني من آلاف المواقع — يوتيوب، فيسبوك، تيك توك، انستغرام وغيرها.
-يعتمد على محرك [yt-dlp](https://github.com/yt-dlp/yt-dlp)، بواجهة **عربية/إنجليزية** كاملة ووضعين للاستخدام:
+- مشاركة أي رابط من التطبيقات الأخرى لبدء التحميل مباشرة.
+- Share a link from another app to start downloading immediately.
+- تحميل في الخلفية مع إشعار يوضح التقدم.
+- Background downloads with progress notifications.
+- استكمال التحميلات المتوقفة أو المتقطعة.
+- Resume interrupted or paused downloads.
+- تحويل الفيديو إلى MP3 ودمج الترجمات.
+- Convert videos to MP3 and merge subtitles.
+- اقتراح تلقائي عند نسخ الرابط.
+- Automatic link detection after copying a URL.
+- وضع بسيط ووضع متقدم يناسبان المبتدئ والمستخدم المحترف.
+- Simple and advanced modes for beginners and power users.
+- أذونات مرتبة من خلال خطوة واحدة عند التشغيل الأول.
+- Streamlined one-step permission flow on first launch.
+- بدون إعلانات أو تتبع، ومفتوح المصدر.
+- No ads or tracking; fully open source.
 
-- **بسيط** — خيارات واضحة ومختصرة: أعلى جودة أو جودة عادية، وضغطة واحدة تبدأ التحميل.
-- **متقدم** — كل الخيارات الكاملة: الصيغ، الجودة، الترجمات، التحويل الصوتي وأكثر.
+## التثبيت | Installation
 
-## المميزات
+1. اضغط زر التحميل الأخضر أعلاه لتنزيل أحدث APK لمعمارية arm64-v8a.
+2. ثبّت الملف واسمح بالتثبيت من مصادر غير معروفة.
+3. اختر الوضع، امنح الأذونات، ثم شارك رابط فيديو أو صوت.
 
-- **التحميل من نافذة المشاركة**: شارك أي رابط من أي تطبيق (فيسبوك مثلاً) وسيبدأ التحميل مباشرة دون فتح التطبيق.
-- **تحميل في الخلفية**: يستمر والشاشة مطفأة، مع إشعار يوضح التقدم.
-- **استكمال التحميلات**: الروابط المتقطعة تُستكمل من حيث توقفت.
-- **تحويل إلى MP3** ودمج الترجمات مع الفيديو.
-- **اقتراح تلقائي**: انسخ أي رابط وافتح التطبيق — زر واحد يبدأ التحميل.
-- **أذونات بضغطة واحدة**: عند أول تشغيل تظهر جميع نوافذ الأذونات بالتتابع من ضغطة واحدة.
-- **بلا إعلانات ولا تتبع** — مفتوح المصدر بالكامل.
+1. Press the green button above to download the latest arm64-v8a APK.
+2. Install it and allow installation from unknown sources.
+3. Choose a mode, grant permissions, and share a video or audio link.
 
-## التثبيت
+**الإصدار الحالي | Current release:** v2.2.11.
 
-1. حمّل ملف APK من الزر الكبير أعلاه.
-2. اسمح بالتثبيت من مصادر غير معروفة عند سؤال النظام.
-3. عند أول فتح: اختر الوضع ثم اضغط «منح الأذونات» مرة واحدة — ستظهر كل النوافذ بالتتابع.
-4. شارك أي رابط فيديو وابدأ التحميل.
-
-## ملاحظات
-
-- النسخ موقعة بمفتاح خاص: الترقية من **v2.2.7 وما فوق** تتم بالتثبيت المباشر فوق النسخة القديمة.
-  من إصدار أقدم (v2.2.6 وأسفل): ألغِ تثبيت النسخة القديمة أولاً.
-- إن واجهت أي توقف في التحميل، تجد سجلاً تشخيصياً جاهزاً للمشاركة في:
-  `Download/Magen download/diag.log`
-
-## إعادة بناء المشروع | Build
+## البناء والترخيص | Build & License
 
 ```bash
-# المتطلبات: JDK 21 + Android SDK (compileSdk 35)
 ./gradlew :app:assembleGenericRelease -PnoSplits "-PABI_FILTERS=arm64-v8a"
 ```
 
-## الترخيص | License
+مرخص تحت GPL-3.0، ومبني على [Seal](https://github.com/JunkFood02/Seal) وyt-dlp.
 
-**GPL-3.0** — انظر [LICENSE](LICENSE). هذا التطبيق مشتق من مشروع [Seal](https://github.com/JunkFood02/Seal) المفتوح المصدر، ويعتمد على [yt-dlp](https://github.com/yt-dlp/yt-dlp) و[youtubedl-android](https://github.com/yausername/youtubedl-android).
+Licensed under GPL-3.0; based on [Seal](https://github.com/JunkFood02/Seal) and yt-dlp.
